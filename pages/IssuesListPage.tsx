@@ -89,10 +89,36 @@ const IssuesListPage: React.FC = () => {
         setDeletingIssueId(issueId);
         setIsConfirmDeleteModalOpen(true);
     };
-    const confirmDelete = () => {
-        alert(`Funcionalidad de borrado de incidencias no implementada.`);
-        setIsConfirmDeleteModalOpen(false);
-    }
+    // --- REEMPLAZA LA FUNCIÓN confirmDelete CON ESTA ---
+    const confirmDelete = async () => {
+        if (!deletingIssueId) return;
+
+        try {
+            const response = await fetch(`http://localhost:4000/api/issues/${deletingIssueId}`, {
+                method: 'DELETE',
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || "Error al eliminar la incidencia.");
+            }
+
+            alert('¡Incidencia eliminada exitosamente!');
+
+            // Actualizamos el estado para que la incidencia desaparezca de la tabla al instante
+            setIssues(prev => prev.filter(issue => issue.id !== deletingIssueId));
+
+        } catch (error) {
+            console.error("Error al eliminar la incidencia:", error);
+            alert(`Error: ${error instanceof Error ? error.message : "Ocurrió un error"}`);
+        } finally {
+            // Cerramos el modal de confirmación
+            setIsConfirmDeleteModalOpen(false);
+            setDeletingIssueId(null);
+        }
+    };
+
+
     // --- REEMPLAZA LA FUNCIÓN handleFormSubmit CON ESTA ---
     const handleFormSubmit = async (updatedIssue: IssueReport) => {
         if (!editingIssue) return;

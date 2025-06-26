@@ -56,7 +56,6 @@ router.post('/', async (req: Request, res: Response) => {
     }
 });
 
-// --- AÑADE ESTE NUEVO CÓDIGO ---
 
 // PUT /api/issues/:id - Actualiza una incidencia existente
 router.put('/:id', async (req: Request, res: Response) => {
@@ -91,6 +90,24 @@ router.put('/:id', async (req: Request, res: Response) => {
     }
 });
 
-// --- FIN DEL CÓDIGO AÑADIDO ---
+// DELETE /api/issues/:id - Elimina una incidencia por su ID
+router.delete('/:id', async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params; // El ID de la incidencia a eliminar
+
+        const [result] = await pool.query("DELETE FROM issue_reports WHERE id = ?", [id]);
+
+        const apacket = result as any;
+        if (apacket.affectedRows === 0) {
+            return res.status(404).json({ message: "Incidencia no encontrada para eliminar." });
+        }
+
+        res.status(200).json({ message: 'Incidencia eliminada exitosamente' });
+
+    } catch (error) {
+        console.error("Error al eliminar la incidencia:", error);
+        res.status(500).json({ message: "Error interno del servidor" });
+    }
+});
 
 export default router;
