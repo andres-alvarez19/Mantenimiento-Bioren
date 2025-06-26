@@ -103,7 +103,6 @@ router.put('/:id', async (req: Request, res: Response) => {
     }
 });
 
-// --- AÑADE ESTE NUEVO CÓDIGO ---
 
 // DELETE /api/equipment/:id - Elimina un equipo por su ID
 router.delete('/:id', async (req: Request, res: Response) => {
@@ -130,6 +129,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
     }
 });
 
-// --- FIN DEL CÓDIGO AÑADIDO ---
+
+
 
 export default router;
