@@ -93,10 +93,50 @@ const IssuesListPage: React.FC = () => {
         alert(`Funcionalidad de borrado de incidencias no implementada.`);
         setIsConfirmDeleteModalOpen(false);
     }
-    const handleFormSubmit = (updatedIssue: IssueReport) => {
-        alert(`Funcionalidad de edición de incidencias no implementada.`);
-        setIsEditModalOpen(false);
-    }
+    // --- REEMPLAZA LA FUNCIÓN handleFormSubmit CON ESTA ---
+    const handleFormSubmit = async (updatedIssue: IssueReport) => {
+        if (!editingIssue) return;
+
+        try {
+            const response = await fetch(`http://localhost:4000/api/issues/${editingIssue.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                // Solo enviamos los campos que el backend espera
+                body: JSON.stringify({
+                    description: updatedIssue.description,
+                    severity: updatedIssue.severity,
+                    status: updatedIssue.status, // El estado también se puede editar
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || "Error al actualizar la incidencia.");
+            }
+
+            alert('¡Incidencia actualizada exitosamente!');
+
+            // Actualizamos la lista de incidencias en el frontend para reflejar el cambio al instante
+            setIssues(prevIssues =>
+                prevIssues.map(issue =>
+                    issue.id === updatedIssue.id ? { ...issue, ...updatedIssue } : issue
+                )
+            );
+
+        } catch (error) {
+            console.error("Error al actualizar la incidencia:", error);
+            alert(`Error: ${error instanceof Error ? error.message : "Ocurrió un error"}`);
+        } finally {
+            // Cerramos el modal
+            setIsEditModalOpen(false);
+            setEditingIssue(null);
+        }
+    };
+
+
+
     const canManageIssues = currentUser?.role === UserRole.BIOREN_ADMIN || currentUser?.role === UserRole.UNIT_MANAGER;
 
     // El JSX (la parte visual) permanece casi igual.

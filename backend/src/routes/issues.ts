@@ -56,4 +56,41 @@ router.post('/', async (req: Request, res: Response) => {
     }
 });
 
+// --- AÑADE ESTE NUEVO CÓDIGO ---
+
+// PUT /api/issues/:id - Actualiza una incidencia existente
+router.put('/:id', async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params; // El ID de la incidencia a actualizar
+        const { description, severity, status } = req.body; // Los campos que se pueden editar
+
+        // Validación
+        if (!description || !severity || !status) {
+            return res.status(400).json({ message: 'Faltan campos para la actualización.' });
+        }
+
+        const sql = `
+            UPDATE issue_reports 
+            SET description = ?, severity = ?, status = ?
+            WHERE id = ?
+        `;
+
+        const values = [description, severity, status, id];
+        const [result] = await pool.query(sql, values);
+
+        const apacket = result as any;
+        if (apacket.affectedRows === 0) {
+            return res.status(404).json({ message: "Incidencia no encontrada para actualizar." });
+        }
+
+        res.status(200).json({ message: 'Incidencia actualizada exitosamente' });
+
+    } catch (error) {
+        console.error("Error al actualizar la incidencia:", error);
+        res.status(500).json({ message: "Error interno del servidor" });
+    }
+});
+
+// --- FIN DEL CÓDIGO AÑADIDO ---
+
 export default router;
