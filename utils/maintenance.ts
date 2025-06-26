@@ -1,18 +1,23 @@
 // utils/maintenance.ts
 
 import { Equipment, MaintenanceFrequencyUnit } from "../types";
-import { isValid } from 'date-fns'; // Importamos 'isValid' desde date-fns
+import { isValid } from 'date-fns';
 
 export const calculateMaintenanceDetails = (equipment: Equipment): Equipment & { status: 'OK' | 'Advertencia' | 'Vencido', nextMaintenanceDate: string } => {
+    console.log("Calculando detalles para el equipo:", equipment);
+    console.log("Valor de lastMaintenanceDate recibido:", equipment.lastMaintenanceDate);
+
     let status: 'OK' | 'Advertencia' | 'Vencido' = 'OK';
     let nextMaintenanceDateStr = 'N/D';
 
     if (equipment.lastMaintenanceDate && equipment.maintenanceFrequency?.value && equipment.maintenanceFrequency?.unit) {
+        console.log("¡La condición IF se cumplió! Entrando a calcular la fecha.");
+        const calculationDate = new Date(equipment.lastMaintenanceDate); // Ya no es necesario añadir T00:00:00 porque la fecha ya viene en formato ISO
 
-        const calculationDate = new Date(equipment.lastMaintenanceDate + 'T00:00:00');
-
-        if (!isValid(calculationDate)) { // Verificación inicial
-            return { ...equipment, status: 'OK', nextMaintenanceDate: 'N/D' };
+        if (!isValid(calculationDate)) {
+            const result = { ...equipment, status: 'OK', nextMaintenanceDate: 'N/D' };
+            console.log("Fecha inicial inválida, devolviendo:", result);
+            return result;
         }
 
         const { value, unit } = equipment.maintenanceFrequency;
@@ -34,33 +39,29 @@ export const calculateMaintenanceDetails = (equipment: Equipment): Equipment & {
 
         const nextMaintenanceDate = calculationDate;
 
-        // --- VERIFICACIÓN FINAL Y CORRECCIÓN ---
-        // Solo si la fecha calculada es válida, la convertimos a texto.
         if (isValid(nextMaintenanceDate)) {
             nextMaintenanceDateStr = nextMaintenanceDate.toISOString();
-
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-
             const oneMonthFromNow = new Date();
             oneMonthFromNow.setMonth(oneMonthFromNow.getMonth() + 1);
-
             if (nextMaintenanceDate < today) status = 'Vencido';
             else if (nextMaintenanceDate < oneMonthFromNow) status = 'Advertencia';
             else status = 'OK';
         } else {
-            // Si por alguna razón el cálculo produce una fecha inválida, nos aseguramos de devolver 'N/D'.
             nextMaintenanceDateStr = 'N/D';
             status = 'OK';
         }
     }
 
-    return { ...equipment, status, nextMaintenanceDate: nextMaintenanceDateStr };
+    // --- AÑADIMOS ESTE CONSOLE.LOG FINAL ---
+    const finalResult = { ...equipment, status, nextMaintenanceDate: nextMaintenanceDateStr };
+    console.log("Resultado final del cálculo:", finalResult);
+    return finalResult;
+    // --- FIN DEL CONSOLE.LOG FINAL ---
 };
 
-// --- AÑADE ESTA NUEVA FUNCIÓN ---
-// Esta función tomará los datos "planos" de la API y los convertirá
-// a la estructura de "Equipment" que usa nuestro frontend.
+
 export const transformApiDataToEquipment = (apiData: any): Equipment => {
     const {
         maintenanceFrequencyValue,
