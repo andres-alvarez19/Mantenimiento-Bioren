@@ -83,12 +83,14 @@ const EquipmentDetailPage: React.FC = () => {
         navigate('/equipment');
     };
 
-    // --- LÓGICA DE FECHAS CORREGIDA ---
-    // Función auxiliar para formatear fechas de forma segura
+    // --- FUNCIÓN CORREGIDA ---
     const safeFormatDate = (dateString: string | undefined | null) => {
-        if (!dateString) return 'N/D';
-        const date = new Date(dateString + 'T00:00:00'); // Añadimos T00:00:00 para evitar errores de zona horaria
-        return isValid(date) ? format(date, 'PPP', { locale: es }) : 'N/D';
+        if (!dateString || dateString === 'N/D') return 'N/D';
+
+        // La fecha ya viene en formato ISO completo, no necesita añadidos
+        const date = new Date(dateString);
+
+        return isValid(date) ? format(date, 'dd/MM/yyyy') : 'N/D';
     };
 
     // Usamos la nueva función segura
