@@ -1,5 +1,6 @@
 // pages/EquipmentDetailPage.tsx
 
+import { calculateMaintenanceDetails, transformApiDataToEquipment } from '../utils/maintenance';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Equipment, MaintenanceRecord, EquipmentCriticality, UserRole } from '../types';
@@ -30,26 +31,32 @@ const EquipmentDetailPage: React.FC = () => {
     const [isConfirmDeleteModalOpen, setIsConfirmDeleteModalOpen] = useState(false);
 
     useEffect(() => {
-        if (!equipmentId) {
-            setIsLoading(false);
-            setError("No se ha proporcionado un ID de equipo.");
-            return;
-        }
+        if (!equipmentId) return;
+
         const fetchEquipment = async () => {
             setIsLoading(true);
             setError(null);
             try {
                 const response = await fetch(`http://localhost:4000/api/equipment/${equipmentId}`);
                 if (!response.ok) throw new Error('El equipo solicitado no pudo ser encontrado.');
-                const data: Equipment = await response.json();
-                const processedData = calculateMaintenanceDetails(data);
+
+                const dataFromApi: any = await response.json();
+
+                // Usamos nuestra nueva función para transformar el item
+                const transformedData: Equipment = transformApiDataToEquipment(dataFromApi);
+
+                // Ahora le pasamos los datos ya transformados a la función de cálculo
+                const processedData = calculateMaintenanceDetails(transformedData);
+
                 setEquipment(processedData);
+
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'Ocurrió un error');
             } finally {
                 setIsLoading(false);
             }
         };
+
         fetchEquipment();
     }, [equipmentId]);
 

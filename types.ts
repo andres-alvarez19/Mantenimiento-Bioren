@@ -53,7 +53,10 @@ export interface Equipment {
   lastCalibrationDate?: string; // ISO string
   lastMaintenanceDate?: string; // ISO string
   encargado?: string; // Changed from assignedTechnician
-  maintenanceFrequency: CustomMaintenanceFrequency;
+  maintenanceFrequency: {
+    value: number;
+    unit: MaintenanceFrequencyUnit;
+  };
   maintenanceRecords: MaintenanceRecord[];
   customMaintenanceInstructions?: string; // E.g., "Change filament every 3 months"
   // size: EquipmentSize; // Removed

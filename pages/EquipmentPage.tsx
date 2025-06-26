@@ -1,5 +1,6 @@
-// MantenimientoBioren/src/pages/EquipmentPage.tsx
+// pages/EquipmentPage.tsx
 
+import { calculateMaintenanceDetails, transformApiDataToEquipment } from '../utils/maintenance';
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Equipment, UserRole } from '../types';
@@ -9,30 +10,34 @@ import Button from '../components/ui/Button';
 import { PlusCircleIcon, FunnelIcon } from '@heroicons/react/24/solid';
 import { useAuth } from '../contexts/AuthContext';
 import TextInput from '../components/ui/TextInput';
-import { calculateMaintenanceDetails } from '@/utils/maintenance'; // <-- Importamos la función desde su nuevo archivo
+import { calculateMaintenanceDetails } from '../utils/maintenance';
 
 const EquipmentPage: React.FC = () => {
     const [allEquipment, setAllEquipment] = useState<Equipment[]>([]);
     const [filteredEquipment, setFilteredEquipment] = useState<Array<Equipment & { status: 'OK' | 'Advertencia' | 'Vencido', nextMaintenanceDate: string }>>([]);
-
     const [isConfirmDeleteModalOpen, setIsConfirmDeleteModalOpen] = useState(false);
     const [deletingEquipmentId, setDeletingEquipmentId] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<string>('');
-
     const { currentUser } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
+
+    // Dentro de EquipmentPage.tsx
 
     useEffect(() => {
         const fetchEquipment = async () => {
             try {
                 const response = await fetch('http://localhost:4000/api/equipment');
-                if (!response.ok) {
-                    throw new Error('La respuesta de la red no fue exitosa');
-                }
-                const data: Equipment[] = await response.json();
-                setAllEquipment(data);
+                if (!response.ok) throw new Error('La respuesta de la red no fue exitosa');
+
+                const dataFromApi: any[] = await response.json();
+
+                // Usamos nuestra nueva función para transformar cada item
+                const transformedData: Equipment[] = dataFromApi.map(transformApiDataToEquipment);
+
+                setAllEquipment(transformedData);
+
             } catch (error) {
                 console.error("Error al obtener los equipos:", error);
             }
@@ -40,6 +45,7 @@ const EquipmentPage: React.FC = () => {
 
         fetchEquipment();
     }, []);
+
 
     useEffect(() => {
         let tempEquipment = allEquipment.map(calculateMaintenanceDetails);
@@ -61,7 +67,6 @@ const EquipmentPage: React.FC = () => {
         setFilteredEquipment(tempEquipment);
     }, [searchTerm, statusFilter, currentUser, allEquipment]);
 
-
     useEffect(() => {
         const params = new URLSearchParams(location.search);
         const status = params.get('status');
@@ -70,10 +75,7 @@ const EquipmentPage: React.FC = () => {
         }
     }, [location.search]);
 
-
-    const handleAddEquipment = () => {
-        navigate('/equipment/new');
-    };
+    const handleAddEquipment = () => navigate('/equipment/new');
 
     const handleDeleteEquipment = (id: string) => {
         setDeletingEquipmentId(id);
@@ -105,18 +107,15 @@ const EquipmentPage: React.FC = () => {
 
             <div className="bg-white p-4 shadow rounded-md flex space-x-4 items-end">
                 <TextInput
-                    label="Buscar Equipo"
-                    id="searchEquipment"
+                    label="Buscar Equipo" id="searchEquipment"
                     placeholder="ID, Nombre, Marca, Modelo..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
                     containerClassName="flex-grow"
                 />
                 <div className="flex-shrink-0">
                     <label htmlFor="statusFilter" className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
                     <select
-                        id="statusFilter"
-                        value={statusFilter}
+                        id="statusFilter" value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value)}
                         className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-bioren-blue-light focus:border-bioren-blue-light sm:text-sm rounded-md"
                     >
@@ -146,8 +145,7 @@ const EquipmentPage: React.FC = () => {
                     {filteredEquipment.length > 0 ? (
                         filteredEquipment.map(equipment => (
                             <EquipmentListItem
-                                key={equipment.id}
-                                equipment={equipment}
+                                key={equipment.id} equipment={equipment}
                                 onDelete={handleDeleteEquipment}
                             />
                         ))
@@ -164,10 +162,8 @@ const EquipmentPage: React.FC = () => {
 
             {isConfirmDeleteModalOpen && (
                 <Modal
-                    isOpen={isConfirmDeleteModalOpen}
-                    onClose={() => setIsConfirmDeleteModalOpen(false)}
-                    title="Confirmar Eliminación"
-                    size="sm"
+                    isOpen={isConfirmDeleteModalOpen} onClose={() => setIsConfirmDeleteModalOpen(false)}
+                    title="Confirmar Eliminación" size="sm"
                     footerActions={
                         <>
                             <Button variant="secondary" onClick={() => setIsConfirmDeleteModalOpen(false)}>Cancelar</Button>
