@@ -30,8 +30,8 @@ const LoginPage: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-bioren-blue to-bioren-blue-light flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <img
-            className="mx-auto h-16 w-auto"
-            src="https://picsum.photos/seed/biorenlogo/100/100" // Placeholder logo
+            className="mx-auto h-40 w-auto"
+            src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQXDde6T8GvmnO4I3U1RvjDADdL0yLwfBXXXw&s"
             alt="BIOREN Logo"
         />
         <h2 className="mt-6 text-center text-3xl font-extrabold text-white">
