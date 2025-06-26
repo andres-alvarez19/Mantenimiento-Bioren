@@ -6,7 +6,7 @@ import { MOCK_EQUIPMENT } from '../constants';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import { getStatusColor, getCriticalityColor } from '../components/equipment/EquipmentListItem';
-import { calculateMaintenanceDetails } from './EquipmentPage'; 
+import { calculateMaintenanceDetails } from '../utils/maintenance';
 import { PaperClipIcon, ArrowLeftIcon, PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale/es';

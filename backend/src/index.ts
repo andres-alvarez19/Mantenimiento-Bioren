@@ -1,22 +1,19 @@
 import express from 'express';
 import cors from 'cors';
-import equipmentRoutes from './routes/equipment'; // Importaremos la ruta que crearemos a continuación
+import equipmentRoutes from './routes/equipment'; // <-- LÍNEA CLAVE
 
 const app = express();
-const PORT = 4000; // El frontend corre en un puerto (ej. 5173), el backend en otro.
+const PORT = 4000;
 
-// Middlewares: funciones que se ejecutan antes de llegar a nuestras rutas
-app.use(cors()); // Permite que el frontend haga peticiones a nuestro backend
-app.use(express.json()); // Permite al servidor entender JSON en el cuerpo de las peticiones
+app.use(cors());
+app.use(express.json());
 
-// Rutas de la API
 app.get('/api', (req, res) => {
     res.send('API de Bioren funcionando!');
 });
 
-app.use('/api/equipment', equipmentRoutes); // Todas las rutas en equipment.ts empezarán con /api/equipment
+app.use('/api/equipment', equipmentRoutes);
 
-// Iniciar el servidor
 app.listen(PORT, () => {
     console.log(`🚀 Servidor backend corriendo en http://localhost:${PORT}`);
 });
