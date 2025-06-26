@@ -103,4 +103,33 @@ router.put('/:id', async (req: Request, res: Response) => {
     }
 });
 
+// --- AÑADE ESTE NUEVO CÓDIGO ---
+
+// DELETE /api/equipment/:id - Elimina un equipo por su ID
+router.delete('/:id', async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params; // El ID del equipo a eliminar
+
+        // Creamos y ejecutamos la consulta SQL para borrar
+        const [result] = await pool.query("DELETE FROM equipment WHERE id = ?", [id]);
+
+        // Verificamos si la consulta afectó a alguna fila.
+        // Si affectedRows es 0, significa que no se encontró un equipo con ese ID.
+        const apacket = result as any;
+        if (apacket.affectedRows === 0) {
+            return res.status(404).json({ message: "Equipo no encontrado para eliminar." });
+        }
+
+        // Si todo sale bien, respondemos con un mensaje de éxito.
+        res.status(200).json({ message: 'Equipo eliminado exitosamente' });
+
+    } catch (error) {
+        console.error("Error al eliminar el equipo:", error);
+        // Manejo de errores, por ejemplo, si hay registros en otras tablas que dependen de este equipo.
+        res.status(500).json({ message: "Error interno del servidor" });
+    }
+});
+
+// --- FIN DEL CÓDIGO AÑADIDO ---
+
 export default router;

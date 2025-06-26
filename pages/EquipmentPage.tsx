@@ -82,14 +82,36 @@ const EquipmentPage: React.FC = () => {
         setIsConfirmDeleteModalOpen(true);
     };
 
-    const confirmDelete = () => {
-        if (deletingEquipmentId) {
-            console.log(`Simulando borrado del equipo ${deletingEquipmentId}`);
-            alert(`Simulando borrado del equipo ${deletingEquipmentId}.`);
-            setAllEquipment(prev => prev.filter(eq => eq.id !== deletingEquipmentId));
+
+    //Nueva funcion para manejar la eliminacion de equipos
+    const confirmDelete = async () => {
+        if (!deletingEquipmentId) {
+            alert("Error: No se ha especificado un equipo para eliminar.");
+            return;
         }
-        setIsConfirmDeleteModalOpen(false);
-        setDeletingEquipmentId(null);
+
+        try {
+            const response = await fetch(`http://localhost:4000/api/equipment/${deletingEquipmentId}`, {
+                method: 'DELETE',
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || "Error al eliminar el equipo.");
+            }
+
+            alert("¡Equipo eliminado exitosamente!");
+            // Actualizamos el estado local para quitar el equipo de la lista sin recargar la página
+            setAllEquipment(prev => prev.filter(eq => eq.id !== deletingEquipmentId));
+
+        } catch (error) {
+            console.error("Error al eliminar el equipo:", error);
+            alert(`Error: ${error instanceof Error ? error.message : "Ocurrió un error"}`);
+        } finally {
+            // Cerramos el modal de confirmación en cualquier caso
+            setIsConfirmDeleteModalOpen(false);
+            setDeletingEquipmentId(null);
+        }
     };
 
     const canAddEquipment = currentUser?.role === UserRole.BIOREN_ADMIN || currentUser?.role === UserRole.UNIT_MANAGER;
