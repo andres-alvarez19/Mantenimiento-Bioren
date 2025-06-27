@@ -38,7 +38,10 @@ const LoginPage: React.FC = () => {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedUserId) {
-      login(selectedUserId);
+      // Buscamos el objeto de usuario completo en la lista que ya cargamos desde la API
+      const userToLogin = users.find(user => user.id === selectedUserId) || null;
+      // Le pasamos el objeto completo a la función login
+      login(userToLogin);
     } else {
       alert("Por favor, seleccione un usuario para iniciar sesión.");
     }

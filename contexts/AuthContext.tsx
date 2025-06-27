@@ -1,12 +1,13 @@
+// contexts/AuthContext.tsx
 
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { User } from '../types';
-import { MOCK_USERS } from '../constants';
+// Ya no necesitamos MOCK_USERS aquí
 
 interface AuthContextType {
   currentUser: User | null;
   isAuthenticated: boolean;
-  login: (userId: string) => void;
+  login: (userToLogin: User | null) => void; // <-- AHORA ESPERA UN OBJETO User
   logout: () => void;
 }
 
@@ -20,14 +21,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const isAuthenticated = !!currentUser;
 
-  const login = (userId: string) => {
-    const userToLogin = MOCK_USERS.find(user => user.id === userId);
+  // La función login ahora es mucho más simple y segura
+  const login = (userToLogin: User | null) => {
     if (userToLogin) {
       setCurrentUser(userToLogin);
       localStorage.setItem('currentUser', JSON.stringify(userToLogin));
     } else {
-      // Handle error: user not found
-      console.error("User not found for login:", userId);
+      console.error("Intento de login con usuario nulo.");
       alert("Error al iniciar sesión: Usuario no encontrado.");
     }
   };
@@ -36,19 +36,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setCurrentUser(null);
     localStorage.removeItem('currentUser');
   };
-  
-  useEffect(() => {
-    if (!currentUser && MOCK_USERS.length > 0) {
-       // login(MOCK_USERS[1].id); // Default to BIOREN_ADMIN for dev
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
 
   return (
-    <AuthContext.Provider value={{ currentUser, isAuthenticated, login, logout }}>
-      {children}
-    </AuthContext.Provider>
+      <AuthContext.Provider value={{ currentUser, isAuthenticated, login, logout }}>
+        {children}
+      </AuthContext.Provider>
   );
 };
 
