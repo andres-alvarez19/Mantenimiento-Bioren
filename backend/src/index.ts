@@ -2,9 +2,10 @@
 
 import express from 'express';
 import cors from 'cors';
+import path from 'path'; // <-- 1. IMPORTA la librería 'path'
 import equipmentRoutes from './routes/equipment';
 import issueRoutes from './routes/issues';
-import userRoutes from './routes/users'; // <-- ESTA ES LA LÍNEA QUE FALTABA
+import userRoutes from './routes/users';
 
 const app = express();
 const PORT = 4000;
@@ -12,15 +13,16 @@ const PORT = 4000;
 app.use(cors());
 app.use(express.json());
 
-// API de prueba
-app.get('/api', (req, res) => {
-    res.send('API de Bioren funcionando!');
-});
+// --- 2. AÑADE ESTA LÍNEA CLAVE ---
+// Esto crea una ruta estática. Cualquier petición a /uploads/...
+// servirá los archivos que están en la carpeta backend/uploads.
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// Rutas de la aplicación
+
+// Rutas de la API
 app.use('/api/equipment', equipmentRoutes);
 app.use('/api/issues', issueRoutes);
-app.use('/api/users', userRoutes); // Ahora 'userRoutes' ya es conocido
+app.use('/api/users', userRoutes);
 
 app.listen(PORT, () => {
     console.log(`🚀 Servidor backend corriendo en http://localhost:${PORT}`);

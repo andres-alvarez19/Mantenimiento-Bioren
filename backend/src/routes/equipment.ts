@@ -3,8 +3,35 @@
 import { Router, Request, Response } from 'express';
 import pool from '../db';
 import { Equipment } from '../types';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs'; // Importamos el módulo 'fs' para manejar el sistema de archivos
+
+// --- INICIO DE LA CONFIGURACIÓN CORREGIDA ---
+
+const uploadDir = 'uploads/';
+// Esta línea es clave: se asegura de que la carpeta 'uploads' exista antes de que multer intente usarla.
+fs.mkdirSync(uploadDir, { recursive: true });
+
+// Configuración de Multer para definir dónde y cómo guardar los archivos.
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, uploadDir); // Directorio donde se guardarán los archivos
+    },
+    filename: (req, file, cb) => {
+        // Creamos un nombre de archivo único para evitar que se sobreescriban.
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+    }
+});
+
+const upload = multer({ storage: storage });
+
+// --- FIN DE LA CONFIGURACIÓN ---
 
 const router = Router();
+
+// --- RUTAS EXISTENTES PARA EQUIPOS (CRUD) ---
 
 // GET /api/equipment
 router.get('/', async (req: Request, res: Response) => {
@@ -71,8 +98,6 @@ router.put('/:id', async (req: Request, res: Response) => {
             return res.status(400).json({ message: 'No se recibieron datos para actualizar.' });
         }
         const sql = `UPDATE equipment SET name = ?, brand = ?, model = ?, locationBuilding = ?, locationUnit = ?, lastCalibrationDate = ?, lastMaintenanceDate = ?, encargado = ?, maintenanceFrequencyValue = ?, maintenanceFrequencyUnit = ?, customMaintenanceInstructions = ?, criticality = ? WHERE id = ?`;
-
-        // --- CÓDIGO CORREGIDO ---
         const formatDate = (date: string | undefined | null): string | null => {
             if (!date) return null;
             return new Date(date).toISOString().split('T')[0];
@@ -89,8 +114,6 @@ router.put('/:id', async (req: Request, res: Response) => {
             updatedEquipment.criticality || null,
             id
         ];
-        // --- FIN DE LA CORRECCIÓN ---
-
         const [result] = await pool.query(sql, values);
         const apacket = result as any;
         if (apacket.affectedRows === 0) {
@@ -103,33 +126,67 @@ router.put('/:id', async (req: Request, res: Response) => {
     }
 });
 
-
-// DELETE /api/equipment/:id - Elimina un equipo por su ID
+// DELETE /api/equipment/:id
 router.delete('/:id', async (req: Request, res: Response) => {
     try {
-        const { id } = req.params; // El ID del equipo a eliminar
-
-        // Creamos y ejecutamos la consulta SQL para borrar
+        const { id } = req.params;
         const [result] = await pool.query("DELETE FROM equipment WHERE id = ?", [id]);
-
-        // Verificamos si la consulta afectó a alguna fila.
-        // Si affectedRows es 0, significa que no se encontró un equipo con ese ID.
         const apacket = result as any;
         if (apacket.affectedRows === 0) {
             return res.status(404).json({ message: "Equipo no encontrado para eliminar." });
         }
-
-        // Si todo sale bien, respondemos con un mensaje de éxito.
-        res.status(200).json({ message: 'Equipo eliminado exitosamente' });
-
+        return res.status(200).json({ message: 'Equipo eliminado exitosamente' });
     } catch (error) {
         console.error("Error al eliminar el equipo:", error);
-        // Manejo de errores, por ejemplo, si hay registros en otras tablas que dependen de este equipo.
-        res.status(500).json({ message: "Error interno del servidor" });
+        return res.status(500).json({ message: "Error interno del servidor" });
     }
 });
 
 
+// --- RUTAS NUEVAS PARA HISTORIAL DE MANTENIMIENTO ---
+
+// POST /api/equipment/:id/maintenance
+router.post('/:id/maintenance', upload.single('attachment'), async (req: Request, res: Response) => {
+    try {
+        const { id: equipmentId } = req.params;
+        const { description, performedBy, date } = req.body;
+        const attachment = req.file;
+
+        if (!description || !performedBy || !date) {
+            return res.status(400).json({ message: 'Faltan campos requeridos.' });
+        }
+
+        const recordId = `maint-${Date.now()}`;
+        const attachmentPath = attachment ? attachment.path : null;
+
+        const sql = `
+            INSERT INTO maintenance_records (id, equipmentId, date, description, performedBy, attachmentPath)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `;
+        const values = [recordId, equipmentId, date, description, performedBy, attachmentPath];
+
+        await pool.query(sql, values);
+        res.status(201).json({ message: 'Registro de mantenimiento añadido exitosamente.' });
+    } catch (error) {
+        console.error("Error al añadir el registro de mantenimiento:", error);
+        res.status(500).json({ message: "Error interno del servidor." });
+    }
+});
+
+// GET /api/equipment/:id/maintenance
+router.get('/:id/maintenance', async (req: Request, res: Response) => {
+    try {
+        const { id: equipmentId } = req.params;
+        const [rows] = await pool.query(
+            "SELECT * FROM maintenance_records WHERE equipmentId = ? ORDER BY date DESC",
+            [equipmentId]
+        );
+        res.json(rows);
+    } catch (error) {
+        console.error("Error al obtener el historial de mantenimiento:", error);
+        res.status(500).json({ message: "Error interno del servidor." });
+    }
+});
 
 
 export default router;
