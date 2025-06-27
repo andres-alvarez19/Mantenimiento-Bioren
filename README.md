@@ -16,3 +16,4 @@ This contains everything you need to run your app locally.
 Editar Equipo
 Gestion Incidencias
 GestionUsuarios
+historialMantenimiento
