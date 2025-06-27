@@ -98,9 +98,6 @@ const LoginPage: React.FC = () => {
                 </Button>
               </div>
             </form>
-            <p className="mt-6 text-center text-xs text-gray-500">
-              Este es un inicio de sesión simulado. No se realiza autenticación real.
-            </p>
           </div>
         </div>
       </div>

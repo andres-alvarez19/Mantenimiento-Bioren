@@ -14,7 +14,7 @@ const AdminPage: React.FC = () => {
     const [users, setUsers] = useState<User[]>([]);
     const [isUserModalOpen, setIsUserModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
-    const [userForm, setUserForm] = useState<Partial<User>>({ role: UserRole.READ_ONLY });
+    const [userForm, setUserForm] = useState<Partial<User>>({ role: UserRole.ENCARGADO });
 
     // 1. useEffect para cargar los usuarios desde la API al iniciar
     useEffect(() => {

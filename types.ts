@@ -4,7 +4,7 @@ import React from 'react';
 export enum UserRole {
   UNIT_MANAGER = 'Jefe de Unidad',
   BIOREN_ADMIN = 'Administrador BIOREN',
-  READ_ONLY = 'Usuario de Solo Lectura',
+  ENCARGADO = 'Encargado', // <-- LÍNEA CAMBIADA
 }
 
 export interface User {
