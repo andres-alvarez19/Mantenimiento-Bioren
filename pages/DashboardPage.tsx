@@ -1,22 +1,26 @@
 // pages/DashboardPage.tsx
 
 import React, { useState, useEffect, useMemo } from 'react';
-import DashboardCard from '../components/dashboard/DashboardCard';
-import { Equipment, IssueReport, ChartDataPoint } from '../types';
-import { WrenchScrewdriverIcon, ExclamationTriangleIcon, CheckCircleIcon, ClockIcon } from '@heroicons/react/24/outline';
-import SimplePieChart from '../components/charts/SimplePieChart';
-import SimpleBarChart from '../components/charts/SimpleBarChart';
 import { useNavigate } from 'react-router-dom';
 import { es } from 'date-fns/locale/es';
 import { format } from 'date-fns';
+import { useAuth } from '../contexts/AuthContext';
+
+import DashboardCard from '../components/dashboard/DashboardCard';
+import SimplePieChart from '../components/charts/SimplePieChart';
+import SimpleBarChart from '../components/charts/SimpleBarChart';
+
+import { Equipment, IssueReport, ChartDataPoint, UserRole } from '../types';
 import { calculateMaintenanceDetails, transformApiDataToEquipment } from '../utils/maintenance';
 import { getEquipments } from '../lib/api/services/equipmentService';
 import { getIssueReports } from '../lib/api/services/issueReportService';
 
 const DashboardPage: React.FC = () => {
     const navigate = useNavigate();
-    const [equipment, setEquipment] = useState<Equipment[]>([]);
-    const [issues, setIssues] = useState<IssueReport[]>([]);
+    const { currentUser } = useAuth();
+
+    const [allEquipment, setAllEquipment] = useState<Equipment[]>([]);
+    const [allIssues, setAllIssues] = useState<IssueReport[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -38,9 +42,31 @@ const DashboardPage: React.FC = () => {
         fetchDashboardData();
     }, []);
 
-    // Usamos useMemo para calcular las estadísticas solo cuando los datos cambian
+    // --- INICIO DE LA CORRECCIÓN ---
+    // useMemo para filtrar los datos base según el rol del usuario
+    const userFilteredData = useMemo(() => {
+        // Si es Jefe de Unidad, filtra por la unidad del usuario
+        if (currentUser?.role === UserRole.UNIT_MANAGER && currentUser.unit) {
+            const filteredEquipment = allEquipment.filter(eq => eq.locationUnit === currentUser.unit);
+            const filteredEquipmentIds = filteredEquipment.map(eq => eq.id);
+            const filteredIssues = allIssues.filter(issue => filteredEquipmentIds.includes(issue.equipmentId));
+            return { equipment: filteredEquipment, issues: filteredIssues };
+        }
+        // Si es Encargado, filtra por los equipos asignados a su nombre
+        else if (currentUser?.role === UserRole.ENCARGADO) {
+            const filteredEquipment = allEquipment.filter(eq => eq.encargado === currentUser.name);
+            const filteredEquipmentIds = filteredEquipment.map(eq => eq.id);
+            const filteredIssues = allIssues.filter(issue => filteredEquipmentIds.includes(issue.equipmentId));
+            return { equipment: filteredEquipment, issues: filteredIssues };
+        }
+        // Si es admin, ve todos los datos
+        return { equipment: allEquipment, issues: allIssues };
+    }, [currentUser, allEquipment, allIssues]);
+
+
+    // El resto del código no cambia, ya que ahora operará sobre los datos filtrados en 'userFilteredData'
     const equipmentStats = useMemo(() => {
-        const processedEquipment = equipment.map(calculateMaintenanceDetails);
+        const processedEquipment = userFilteredData.equipment.map(calculateMaintenanceDetails);
 
         const okCount = processedEquipment.filter(e => e.status === 'OK').length;
         const warningCount = processedEquipment.filter(e => e.status === 'Advertencia').length;
@@ -52,11 +78,11 @@ const DashboardPage: React.FC = () => {
             .slice(0, 5);
 
         return { okCount, warningCount, overdueCount, upcomingMaintenance };
-    }, [equipment]);
+    }, [userFilteredData.equipment]);
 
     const openIssuesCount = useMemo(() => {
-        return issues.filter(issue => issue.status === 'Abierto').length;
-    }, [issues]);
+        return userFilteredData.issues.filter(issue => issue.status === 'Abierto').length;
+    }, [userFilteredData.issues]);
 
     const equipmentStatusData: ChartDataPoint[] = [
         { name: 'OK', value: equipmentStats.okCount },
@@ -66,35 +92,35 @@ const DashboardPage: React.FC = () => {
     const statusColors = ['#22c55e', '#f59e0b', '#ef4444'];
 
     const failureTrendData: ChartDataPoint[] = useMemo(() => {
-        const issueCounts = equipment.reduce((acc, eq) => {
-            acc[eq.id] = { name: eq.name, count: 0 };
-            return acc;
-        }, {} as { [key: string]: { name: string, count: number } });
-
-        issues.forEach(issue => {
+        const issueCounts: { [key: string]: { name: string, count: number } } = {};
+        userFilteredData.equipment.forEach(eq => {
+            issueCounts[eq.id] = { name: eq.name, count: 0 };
+        });
+        userFilteredData.issues.forEach(issue => {
             if (issueCounts[issue.equipmentId]) {
                 issueCounts[issue.equipmentId].count++;
             }
         });
-
         return Object.values(issueCounts)
             .sort((a, b) => b.count - a.count)
             .slice(0, 5)
             .map(item => ({ name: item.name.substring(0, 15) + "...", value: item.count }));
+    }, [userFilteredData.equipment, userFilteredData.issues]);
+    // --- FIN DE LA CORRECCIÓN ---
 
-    }, [equipment, issues]);
 
     if (isLoading) {
         return <div className="text-center py-10">Cargando datos del panel...</div>;
     }
 
+    // El resto del JSX no cambia
     return (
         <div className="space-y-6">
             <h1 className="text-3xl font-semibold text-gray-800">Panel Principal BIOREN</h1>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
                 <DashboardCard
-                    title="Total de Equipos" value={equipment.length}
+                    title="Total de Equipos" value={userFilteredData.equipment.length}
                     icon={<WrenchScrewdriverIcon className="w-8 h-8"/>}
                     colorClass="bg-blue-500" onClick={() => navigate('/equipment')}
                 />
@@ -123,11 +149,11 @@ const DashboardPage: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-white shadow-lg rounded-lg p-6">
                     <h2 className="text-xl font-semibold text-gray-700 mb-4">Estado de los Equipos</h2>
-                    <SimplePieChart data={equipmentStatusData} colors={statusColors} />
+                    <SimplePieChart data={equipmentStatusData.filter(d => d.value > 0)} colors={statusColors} />
                 </div>
                 <div className="bg-white shadow-lg rounded-lg p-6">
                     <h2 className="text-xl font-semibold text-gray-700 mb-4">Equipos con Más Incidencias</h2>
-                    <SimpleBarChart data={failureTrendData} dataKey="value" barColor="#ef4444" />
+                    <SimpleBarChart data={failureTrendData.filter(d => d.value > 0)} dataKey="value" barColor="#ef4444" />
                 </div>
             </div>
 
@@ -144,7 +170,7 @@ const DashboardPage: React.FC = () => {
                             </div>
                         ))
                     ) : (
-                        <p className="text-gray-500">Ningún equipo requiere mantenimiento en los próximos 30 días.</p>
+                        <p className="text-gray-500 italic">Ningún equipo requiere mantenimiento en los próximos 30 días.</p>
                     )}
                 </div>
             </div>

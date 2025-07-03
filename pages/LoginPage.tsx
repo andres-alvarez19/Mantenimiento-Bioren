@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { APP_NAME } from '../constants';
+import { APP_NAME } from '../constants';
 import Button from '../components/ui/Button';
 import Alert from '../components/ui/Alert';
 import TextInput from '../components/ui/TextInput';
