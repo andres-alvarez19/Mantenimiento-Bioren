@@ -12,6 +12,7 @@ import Badge from '../components/ui/Badge';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale/es';
 import { MOCK_EQUIPMENT } from '../constants'; // Todavía lo necesitamos para filtrar por unidad
+import { getIssueReports, deleteIssueReport } from '../lib/api/services/issueReportService';
 
 const getSeverityColor = (severity: IssueSeverity): 'red' | 'orange' | 'yellow' => {
     switch(severity) {
@@ -43,11 +44,7 @@ const IssuesListPage: React.FC = () => {
     useEffect(() => {
         const fetchIssues = async () => {
             try {
-                const response = await fetch('http://localhost:4000/api/issues');
-                if (!response.ok) {
-                    throw new Error('Error al obtener las incidencias del servidor.');
-                }
-                const data: IssueReport[] = await response.json();
+                const data: IssueReport[] = await getIssueReports();
                 setIssues(data);
             } catch (error) {
                 console.error(error);
@@ -92,27 +89,14 @@ const IssuesListPage: React.FC = () => {
     // --- REEMPLAZA LA FUNCIÓN confirmDelete CON ESTA ---
     const confirmDelete = async () => {
         if (!deletingIssueId) return;
-
         try {
-            const response = await fetch(`http://localhost:4000/api/issues/${deletingIssueId}`, {
-                method: 'DELETE',
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || "Error al eliminar la incidencia.");
-            }
-
+            await deleteIssueReport(deletingIssueId);
             alert('¡Incidencia eliminada exitosamente!');
-
-            // Actualizamos el estado para que la incidencia desaparezca de la tabla al instante
             setIssues(prev => prev.filter(issue => issue.id !== deletingIssueId));
-
         } catch (error) {
             console.error("Error al eliminar la incidencia:", error);
             alert(`Error: ${error instanceof Error ? error.message : "Ocurrió un error"}`);
         } finally {
-            // Cerramos el modal de confirmación
             setIsConfirmDeleteModalOpen(false);
             setDeletingIssueId(null);
         }

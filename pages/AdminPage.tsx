@@ -7,6 +7,7 @@ import { PencilSquareIcon, TrashIcon, UserPlusIcon } from '@heroicons/react/24/s
 import Modal from '../components/ui/Modal';
 import TextInput from '../components/ui/TextInput';
 import SelectInput from '../components/ui/SelectInput';
+import { getUsers, createUser, updateUser, deleteUser } from '../lib/api/services/userService';
 
 const userRoleOptions = Object.values(UserRole).map(role => ({ value: role, label: role }));
 
@@ -14,7 +15,7 @@ const AdminPage: React.FC = () => {
     const [users, setUsers] = useState<User[]>([]);
     const [isUserModalOpen, setIsUserModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
-    const [userForm, setUserForm] = useState<Partial<User>>({ role: UserRole.READ_ONLY });
+    const [userForm, setUserForm] = useState<Partial<User>>({ role: UserRole.EQUIPMENT_MANAGER });
 
     // 1. useEffect para cargar los usuarios desde la API al iniciar
     useEffect(() => {
@@ -23,9 +24,7 @@ const AdminPage: React.FC = () => {
 
     const fetchUsers = async () => {
         try {
-            const response = await fetch('http://localhost:4000/api/users');
-            if (!response.ok) throw new Error('Error al cargar usuarios');
-            const data: User[] = await response.json();
+            const data: User[] = await getUsers();
             setUsers(data);
         } catch (error) {
             console.error(error);
@@ -35,7 +34,7 @@ const AdminPage: React.FC = () => {
 
     const handleAddUser = () => {
         setEditingUser(null);
-        setUserForm({ name: '', email: '', role: UserRole.READ_ONLY, unit: '' });
+        setUserForm({ name: '', email: '', role: undefined, unit: '' });
         setIsUserModalOpen(true);
     };
 
@@ -50,13 +49,9 @@ const AdminPage: React.FC = () => {
         const userToDelete = users.find(u => u.id === userId);
         if (window.confirm(`¿Está seguro de que desea eliminar al usuario ${userToDelete?.name || userId}?`)) {
             try {
-                const response = await fetch(`http://localhost:4000/api/users/${userId}`, { method: 'DELETE' });
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.message || 'Error al eliminar');
-                }
+                await deleteUser(userId);
                 alert('Usuario eliminado exitosamente');
-                fetchUsers(); // Recargamos la lista de usuarios
+                fetchUsers();
             } catch (error) {
                 console.error(error);
                 alert(`Error: ${error instanceof Error ? error.message : "Ocurrió un error"}`);
@@ -72,28 +67,15 @@ const AdminPage: React.FC = () => {
     // 3. Función de submit conectada a la API (para Crear y Editar)
     const handleUserFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const url = editingUser
-            ? `http://localhost:4000/api/users/${editingUser.id}`
-            : 'http://localhost:4000/api/users';
-
-        const method = editingUser ? 'PUT' : 'POST';
-
         try {
-            const response = await fetch(url, {
-                method: method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(userForm),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Error al guardar el usuario');
+            if (editingUser) {
+                await updateUser(editingUser.id, userForm);
+                alert('Usuario actualizado exitosamente');
+            } else {
+                await createUser(userForm as Omit<User, 'id'>);
+                alert('Usuario añadido exitosamente');
             }
-
-            const successMessage = editingUser ? 'Usuario actualizado' : 'Usuario añadido';
-            alert(`${successMessage} exitosamente`);
-            fetchUsers(); // Recargamos la lista para ver los cambios
-
+            fetchUsers();
         } catch (error) {
             console.error("Error al guardar usuario:", error);
             alert(`Error: ${error instanceof Error ? error.message : "Ocurrió un error"}`);
@@ -149,7 +131,7 @@ const AdminPage: React.FC = () => {
                     <TextInput label="Dirección de Email" name="email" type="email" value={userForm.email || ''} onChange={handleUserFormChange} required />
                     <SelectInput label="Rol" name="role" options={userRoleOptions} value={userForm.role || ''} onChange={handleUserFormChange} required />
                     {userForm.role === UserRole.UNIT_MANAGER && (
-                        <TextInput label="Unidad Asignada (Obligatorio para Jefe de Unidad)" name="unit" value={userForm.unit || ''} onChange={handleUserFormChange} placeholder="Ej: Genomics Unit" required={userForm.role === UserRole.UNIT_MANAGER} />
+                        <TextInput label="Unidad Asignada (Obligatorio para UNIT_MANAGER)" name="unit" value={userForm.unit || ''} onChange={handleUserFormChange} placeholder="Ej: Genomics Unit" required={userForm.role === UserRole.UNIT_MANAGER} />
                     )}
                     <div className="flex justify-end space-x-2 pt-2">
                         <Button type="button" variant="secondary" onClick={() => setIsUserModalOpen(false)}>Cancelar</Button>

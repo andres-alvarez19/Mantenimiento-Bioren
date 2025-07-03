@@ -11,6 +11,7 @@ import { PlusCircleIcon, FunnelIcon } from '@heroicons/react/24/solid';
 import { useAuth } from '../contexts/AuthContext';
 import TextInput from '../components/ui/TextInput';
 import { calculateMaintenanceDetails } from '../utils/maintenance';
+import { getEquipments } from '../lib/api/services/equipmentService';
 
 const EquipmentPage: React.FC = () => {
     const [allEquipment, setAllEquipment] = useState<Equipment[]>([]);
@@ -28,21 +29,13 @@ const EquipmentPage: React.FC = () => {
     useEffect(() => {
         const fetchEquipment = async () => {
             try {
-                const response = await fetch('http://localhost:4000/api/equipment');
-                if (!response.ok) throw new Error('La respuesta de la red no fue exitosa');
-
-                const dataFromApi: any[] = await response.json();
-
-                // Usamos nuestra nueva función para transformar cada item
+                const dataFromApi: any[] = await getEquipments();
                 const transformedData: Equipment[] = dataFromApi.map(transformApiDataToEquipment);
-
                 setAllEquipment(transformedData);
-
             } catch (error) {
                 console.error("Error al obtener los equipos:", error);
             }
         };
-
         fetchEquipment();
     }, []);
 

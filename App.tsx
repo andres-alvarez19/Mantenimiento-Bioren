@@ -22,7 +22,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: UserR
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
-
+  
   if (allowedRoles && currentUser && !allowedRoles.includes(currentUser.role)) {
     // User is authenticated but not authorized for this route
     return <Navigate to="/" replace />; // Or a specific "Access Denied" page

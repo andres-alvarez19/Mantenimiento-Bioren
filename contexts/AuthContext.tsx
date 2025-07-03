@@ -1,12 +1,11 @@
-
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { User } from '../types';
-import { MOCK_USERS } from '../constants';
+import { login as apiLogin } from '../lib/api/services/authService';
 
 interface AuthContextType {
   currentUser: User | null;
   isAuthenticated: boolean;
-  login: (userId: string) => void;
+  login: (credentials: { email: string, password: string }) => Promise<void>;
   logout: () => void;
 }
 
@@ -20,26 +19,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const isAuthenticated = !!currentUser;
 
-  const login = (userId: string) => {
-    const userToLogin = MOCK_USERS.find(user => user.id === userId);
-    if (userToLogin) {
-      setCurrentUser(userToLogin);
-      localStorage.setItem('currentUser', JSON.stringify(userToLogin));
-    } else {
-      // Handle error: user not found
-      console.error("User not found for login:", userId);
-      alert("Error al iniciar sesión: Usuario no encontrado.");
+  const login = async (credentials: { email: string, password: string }) => {
+    try {
+      const { token, user } = await apiLogin(credentials);
+      localStorage.setItem('token', token);
+      localStorage.setItem('currentUser', JSON.stringify(user));
+      setCurrentUser(user);
+    } catch (error) {
+      throw error;
     }
   };
 
   const logout = () => {
     setCurrentUser(null);
     localStorage.removeItem('currentUser');
+    localStorage.removeItem('token');
   };
   
   useEffect(() => {
-    if (!currentUser && MOCK_USERS.length > 0) {
-       // login(MOCK_USERS[1].id); // Default to BIOREN_ADMIN for dev
+    const token = localStorage.getItem('token');
+    const user = localStorage.getItem('currentUser');
+    if (!token || !user) {
+      setCurrentUser(null);
+      localStorage.removeItem('currentUser');
+      localStorage.removeItem('token');
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

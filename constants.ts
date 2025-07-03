@@ -132,10 +132,10 @@ export const MOCK_NOTIFICATIONS: AppNotification[] = [
 ];
 
 export const NAVIGATION_ITEMS: NavItem[] = [
-  { path: '/', label: 'Panel Principal', icon: React.createElement(HomeIcon, { className: "w-5 h-5" }), allowedRoles: [UserRole.BIOREN_ADMIN, UserRole.UNIT_MANAGER, UserRole.READ_ONLY] },
-  { path: '/equipment', label: 'Equipos', icon: React.createElement(WrenchScrewdriverIcon, { className: "w-5 h-5" }), allowedRoles: [UserRole.BIOREN_ADMIN, UserRole.UNIT_MANAGER, UserRole.READ_ONLY] },
+  { path: '/', label: 'Panel Principal', icon: React.createElement(HomeIcon, { className: "w-5 h-5" }), allowedRoles: [UserRole.BIOREN_ADMIN, UserRole.UNIT_MANAGER, UserRole.EQUIPMENT_MANAGER] },
+  { path: '/equipment', label: 'Equipos', icon: React.createElement(WrenchScrewdriverIcon, { className: "w-5 h-5" }), allowedRoles: [UserRole.BIOREN_ADMIN, UserRole.UNIT_MANAGER, UserRole.EQUIPMENT_MANAGER] },
   { path: '/equipment/new', label: 'Añadir Equipo', icon: React.createElement(PlusCircleIcon, { className: "w-5 h-5" }), allowedRoles: [UserRole.BIOREN_ADMIN, UserRole.UNIT_MANAGER] },
-  { path: '/issues', label: 'Incidencias Reportadas', icon: React.createElement(SolidExclamationTriangleIcon, { className: "w-5 h-5" }), allowedRoles: [UserRole.BIOREN_ADMIN, UserRole.UNIT_MANAGER, UserRole.READ_ONLY] },
+  { path: '/issues', label: 'Incidencias Reportadas', icon: React.createElement(SolidExclamationTriangleIcon, { className: "w-5 h-5" }), allowedRoles: [UserRole.BIOREN_ADMIN, UserRole.UNIT_MANAGER, UserRole.EQUIPMENT_MANAGER] },
   { path: '/reports', label: 'Informes', icon: React.createElement(DocumentChartBarIcon, { className: "w-5 h-5" }), allowedRoles: [UserRole.BIOREN_ADMIN, UserRole.UNIT_MANAGER] },
   { path: '/admin/users', label: 'Gestión de Usuarios', icon: React.createElement(UserGroupIcon, { className: "w-5 h-5" }), allowedRoles: [UserRole.BIOREN_ADMIN] },
   { path: '/admin/settings', label: 'Configuración del Sistema', icon: React.createElement(CogIcon, { className: "w-5 h-5" }), allowedRoles: [UserRole.BIOREN_ADMIN] },

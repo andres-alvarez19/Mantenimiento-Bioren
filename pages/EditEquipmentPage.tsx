@@ -6,6 +6,7 @@ import EquipmentForm from '../components/equipment/EquipmentForm';
 import { Equipment } from '../types';
 import Button from '../components/ui/Button';
 import { transformApiDataToEquipment } from '../utils/maintenance'; // Importamos nuestra función de utilidad
+import { getEquipmentById } from '../lib/api/services/equipmentService';
 
 const EditEquipmentPage: React.FC = () => {
     const navigate = useNavigate();
@@ -23,15 +24,9 @@ const EditEquipmentPage: React.FC = () => {
             setError("No se proporcionó ID de equipo.");
             return;
         }
-
         const fetchEquipmentForEdit = async () => {
             try {
-                const response = await fetch(`http://localhost:4000/api/equipment/${equipmentId}`);
-                if (!response.ok) {
-                    throw new Error("No se pudo encontrar el equipo para editar.");
-                }
-                const dataFromApi = await response.json();
-                // Usamos nuestra función para asegurar que la estructura de datos sea la correcta
+                const dataFromApi = await getEquipmentById(equipmentId);
                 const transformedData = transformApiDataToEquipment(dataFromApi);
                 setEquipmentToEdit(transformedData);
             } catch (err) {
@@ -40,7 +35,6 @@ const EditEquipmentPage: React.FC = () => {
                 setIsLoading(false);
             }
         };
-
         fetchEquipmentForEdit();
     }, [equipmentId]);
 

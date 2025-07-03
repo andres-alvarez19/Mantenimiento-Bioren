@@ -1,10 +1,9 @@
-
 import React from 'react';
 
 export enum UserRole {
-  UNIT_MANAGER = 'Jefe de Unidad',
-  BIOREN_ADMIN = 'Administrador BIOREN',
-  READ_ONLY = 'Usuario de Solo Lectura',
+  UNIT_MANAGER = 'UNIT_MANAGER',
+  BIOREN_ADMIN = 'BIOREN_ADMIN',
+  EQUIPMENT_MANAGER = 'EQUIPMENT_MANAGER',
 }
 
 export interface User {
@@ -52,7 +51,7 @@ export interface Equipment {
   locationUnit: string; // Responsible unit
   lastCalibrationDate?: string; // ISO string
   lastMaintenanceDate?: string; // ISO string
-  encargado?: string; // Changed from assignedTechnician
+  encargado?: User; // Ahora es un usuario
   maintenanceFrequency: {
     value: number;
     unit: MaintenanceFrequencyUnit;
@@ -63,6 +62,7 @@ export interface Equipment {
   criticality: EquipmentCriticality;
   status?: 'OK' | 'Advertencia' | 'Vencido'; // Calculated status
   nextMaintenanceDate?: string; // Calculated
+  purchasedByGovernment?: boolean; // New field
 }
 
 export enum IssueSeverity {

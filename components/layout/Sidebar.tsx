@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { APP_NAME, NAVIGATION_ITEMS, QUICK_ISSUE_REPORT_PATH } from '../../constants';
@@ -11,10 +10,9 @@ const Sidebar: React.FC = () => {
   const location = useLocation();
 
   if (!currentUser) return null;
-
-  const allowedNavItems = NAVIGATION_ITEMS.filter(item =>
-    item.allowedRoles.includes(currentUser.role)
-  );
+  const allowedNavItems = NAVIGATION_ITEMS.filter(item => {
+     return item.allowedRoles.includes(currentUser.role)
+    });
 
   return (
     <div className="w-64 bg-bioren-blue text-white flex flex-col min-h-screen">

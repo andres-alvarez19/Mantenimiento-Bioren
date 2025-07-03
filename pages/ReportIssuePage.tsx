@@ -5,6 +5,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import IssueReportForm from '../components/issues/IssueReportForm';
 import { IssueReport } from '../types';
 import { useAuth } from '../contexts/AuthContext'; // Importamos useAuth para obtener el usuario actual
+import { createIssueReport } from '../lib/api/services/issueReportService';
 
 const ReportIssuePage: React.FC = () => {
   const navigate = useNavigate();
@@ -27,19 +28,7 @@ const ReportIssuePage: React.FC = () => {
     };
 
     try {
-      const response = await fetch('http://localhost:4000/api/issues', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(fullIssueReport),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Error al reportar la incidencia.');
-      }
-
+      await createIssueReport(fullIssueReport);
       alert('¡Incidencia reportada exitosamente!');
       navigate('/issues'); // Redirigimos a la lista de incidencias
 

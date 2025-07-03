@@ -10,6 +10,8 @@ import { useNavigate } from 'react-router-dom';
 import { es } from 'date-fns/locale/es';
 import { format } from 'date-fns';
 import { calculateMaintenanceDetails, transformApiDataToEquipment } from '../utils/maintenance';
+import { getEquipments } from '../lib/api/services/equipmentService';
+import { getIssueReports } from '../lib/api/services/issueReportService';
 
 const DashboardPage: React.FC = () => {
     const navigate = useNavigate();
@@ -20,23 +22,12 @@ const DashboardPage: React.FC = () => {
     useEffect(() => {
         const fetchDashboardData = async () => {
             try {
-                // Hacemos las dos peticiones en paralelo
-                const [equipResponse, issuesResponse] = await Promise.all([
-                    fetch('http://localhost:4000/api/equipment'),
-                    fetch('http://localhost:4000/api/issues'),
+                const [equipData, issuesData] = await Promise.all([
+                    getEquipments(),
+                    getIssueReports(),
                 ]);
-                if (!equipResponse.ok || !issuesResponse.ok) {
-                    throw new Error('Error al cargar los datos del dashboard');
-                }
-                const equipData = await equipResponse.json();
-                const issuesData = await issuesResponse.json();
-
-                // Transformamos los datos de equipos como ya sabemos hacer
-                const transformedEquipData = equipData.map(transformApiDataToEquipment);
-
-                setEquipment(transformedEquipData);
+                setEquipment(equipData);
                 setIssues(issuesData);
-
             } catch (error) {
                 console.error(error);
                 alert("No se pudieron cargar los datos para el dashboard.");

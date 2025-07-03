@@ -1,13 +1,14 @@
 // components/issues/IssueReportForm.tsx
 
 import React, { useState, useEffect } from 'react';
-import { IssueReport, IssueSeverity, Equipment } from '../../types';
+import { IssueReport, IssueSeverity, Equipment, UserRole } from '../../types';
 import Button from '../ui/Button';
 import SelectInput from '../ui/SelectInput';
 import TextareaInput from '../ui/TextareaInput';
 import FileInput from '../ui/FileInput';
 import { ISSUE_SEVERITY_OPTIONS } from '../../constants';
 import { useAuth } from '../../contexts/AuthContext';
+import { getEquipments } from '../../lib/api/services/equipmentService';
 
 interface IssueReportFormProps {
     initialData?: IssueReport | null;
@@ -37,14 +38,10 @@ const IssueReportForm: React.FC<IssueReportFormProps> = ({ initialData, equipmen
     useEffect(() => {
         const fetchEquipmentList = async () => {
             try {
-                const response = await fetch('http://localhost:4000/api/equipment');
-                if (!response.ok) {
-                    throw new Error('No se pudo cargar la lista de equipos.');
-                }
-                const data: Equipment[] = await response.json();
-
+                // Usar el servicio en vez de fetch directo
+                const data: Equipment[] = await getEquipments();
                 // Si el usuario es un Jefe de Unidad, filtramos los equipos por su unidad
-                if (currentUser?.role === 'Jefe de Unidad' && currentUser.unit) {
+                if (currentUser?.role === UserRole.UNIT_MANAGER && currentUser.unit) {
                     setAvailableEquipment(data.filter(eq => eq.locationUnit === currentUser.unit));
                 } else {
                     setAvailableEquipment(data);
@@ -56,7 +53,6 @@ const IssueReportForm: React.FC<IssueReportFormProps> = ({ initialData, equipmen
                 setIsLoading(false);
             }
         };
-
         fetchEquipmentList();
     }, [currentUser]);
 

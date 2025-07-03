@@ -16,6 +16,7 @@ import Modal from '../components/ui/Modal';
 import TextInput from '../components/ui/TextInput';
 import DateInput from '../components/ui/DateInput';
 import FileInput from '../components/ui/FileInput';
+import { getEquipmentById, getEquipmentMaintenanceHistory } from '../lib/api/services/equipmentService';
 
 const DetailItem: React.FC<{ label: string; value?: string | number | React.ReactNode; className?: string }> = ({ label, value, className }) => (
     <div className={`py-3 sm:grid sm:grid-cols-3 sm:gap-4 ${className}`}>
@@ -41,27 +42,12 @@ const EquipmentDetailPage: React.FC = () => {
         if (!equipmentId) return;
         setIsLoading(true);
         try {
-            const [equipResponse, historyResponse] = await Promise.all([
-                fetch(`http://localhost:4000/api/equipment/${equipmentId}`),
-                fetch(`http://localhost:4000/api/equipment/${equipmentId}/maintenance`)
-            ]);
-
-            if (!equipResponse.ok) throw new Error('El equipo no pudo ser encontrado.');
-            if (!historyResponse.ok) throw new Error('El historial no pudo ser cargado.');
-
-            const equipData = await equipResponse.json();
-            const historyData = await historyResponse.json();
-
-            // --- INICIO DE LA CORRECCIÓN CLAVE ---
-            // 1. Transformamos los datos planos de la API a la estructura correcta
+            const equipData = await getEquipmentById(equipmentId);
+            const historyData = await getEquipmentMaintenanceHistory(equipmentId);
             const transformedData = transformApiDataToEquipment(equipData);
-            // 2. Ahora le pasamos los datos ya transformados a la función de cálculo
             const processedData = calculateMaintenanceDetails(transformedData);
-            // --- FIN DE LA CORRECCIÓN CLAVE ---
-
             setEquipment(processedData);
             setMaintenanceHistory(historyData);
-
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Ocurrió un error');
         } finally {
