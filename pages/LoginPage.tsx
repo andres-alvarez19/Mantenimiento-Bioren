@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { APP_NAME } from '../constants';
-import { APP_NAME } from '../constants';
 import Button from '../components/ui/Button';
 import Alert from '../components/ui/Alert';
 import TextInput from '../components/ui/TextInput';
@@ -93,6 +92,9 @@ const LoginPage: React.FC = () => {
                 </Button>
               </div>
             </form>
+            <div className="mt-2 text-center">
+              <a href="/forgot-password" className="text-blue-600 hover:underline text-sm">¿Olvidaste tu contraseña?</a>
+            </div>
             <div className="mt-6 text-center text-xs text-gray-500 mb-4">
               <p>
                 Ingrese su correo institucional y contraseña para acceder.

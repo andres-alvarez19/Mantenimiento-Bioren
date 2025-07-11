@@ -44,6 +44,7 @@ export interface MaintenanceRecord {
 
 export interface Equipment {
   id: string; // Unique institutional ID
+  institutionalId?: string; // Nuevo campo para el id institucional real
   name: string;
   brand: string;
   model: string;

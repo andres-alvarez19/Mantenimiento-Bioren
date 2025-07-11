@@ -23,4 +23,17 @@ export const updateUser = async (id: string, user: Partial<User>): Promise<User>
 
 export const deleteUser = async (id: string): Promise<void> => {
   await apiClient.delete(`/users/${id}`);
-}; 
+};
+
+export async function resendInvitation(userId: string | number) {
+  const res = await fetch(`/api/users/${userId}/resend-invitation`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || 'No se pudo reenviar la invitación.');
+  }
+  return true;
+} 

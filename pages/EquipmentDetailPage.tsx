@@ -16,7 +16,7 @@ import Modal from '../components/ui/Modal';
 import TextInput from '../components/ui/TextInput';
 import DateInput from '../components/ui/DateInput';
 import FileInput from '../components/ui/FileInput';
-import { getEquipmentById, getEquipmentMaintenanceHistory } from '../lib/api/services/equipmentService';
+import { getEquipmentById, deleteEquipment, createMaintenanceRecord } from '../lib/api/services/equipmentService';
 
 const DetailItem: React.FC<{ label: string; value?: string | number | React.ReactNode; className?: string }> = ({ label, value, className }) => (
     <div className={`py-3 sm:grid sm:grid-cols-3 sm:gap-4 ${className}`}>
@@ -34,6 +34,7 @@ const EquipmentDetailPage: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
     const [maintForm, setMaintForm] = useState({ description: '', performedBy: '', date: '' });
     const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
@@ -43,11 +44,11 @@ const EquipmentDetailPage: React.FC = () => {
         setIsLoading(true);
         try {
             const equipData = await getEquipmentById(equipmentId);
-            const historyData = await getEquipmentMaintenanceHistory(equipmentId);
             const transformedData = transformApiDataToEquipment(equipData);
             const processedData = calculateMaintenanceDetails(transformedData);
             setEquipment(processedData);
-            setMaintenanceHistory(historyData);
+            // Los registros de mantenimiento ya vienen en la respuesta del equipo
+            setMaintenanceHistory(equipData.maintenanceRecords || []);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Ocurrió un error');
         } finally {
@@ -80,11 +81,7 @@ const EquipmentDetailPage: React.FC = () => {
         }
 
         try {
-            const response = await fetch(`http://localhost:4000/api/equipment/${equipmentId}/maintenance`, {
-                method: 'POST',
-                body: formData,
-            });
-            if (!response.ok) throw new Error('Error al guardar el registro.');
+            await createMaintenanceRecord(equipmentId, formData);
             alert('Registro de mantenimiento guardado exitosamente.');
             setIsModalOpen(false);
             setMaintForm({ description: '', performedBy: '', date: '' });
@@ -92,6 +89,21 @@ const EquipmentDetailPage: React.FC = () => {
             fetchAllData();
         } catch (error) {
             alert(`Error: ${error instanceof Error ? error.message : "Ocurrió un error"}`);
+        }
+    };
+
+    const handleDelete = () => setIsDeleteModalOpen(true);
+
+    const confirmDelete = async () => {
+        if (!equipmentId) return;
+        try {
+            await deleteEquipment(equipmentId);
+            alert('¡Equipo eliminado exitosamente!');
+            navigate('/equipment');
+        } catch (error) {
+            alert(`Error: ${error instanceof Error ? error.message : 'Ocurrió un error'}`);
+        } finally {
+            setIsDeleteModalOpen(false);
         }
     };
 
@@ -106,7 +118,6 @@ const EquipmentDetailPage: React.FC = () => {
 
     const canEdit = currentUser?.role === UserRole.BIOREN_ADMIN || currentUser?.role === UserRole.UNIT_MANAGER;
     const canDelete = currentUser?.role === UserRole.BIOREN_ADMIN;
-    const handleDelete = () => alert("Funcionalidad de borrado no implementada en esta página.");
 
 
     return (
@@ -132,7 +143,7 @@ const EquipmentDetailPage: React.FC = () => {
                         <DetailItem label="Ubicación" value={`${equipment.locationBuilding} / ${equipment.locationUnit}`} />
                         <DetailItem label="Estado" value={<Badge text={equipment.status || 'Desconocido'} color={getStatusColor(equipment.status)} size="md"/>} />
                         <DetailItem label="Criticidad" value={<Badge text={equipment.criticality} color={getCriticalityColor(equipment.criticality as EquipmentCriticality)} size="md"/>} />
-                        <DetailItem label="Encargado" value={equipment.encargado} />
+                        <DetailItem label="Encargado" value={equipment.encargado?.name || 'N/D'} />
                         <DetailItem label="Frecuencia de Mantenimiento" value={equipment.maintenanceFrequency?.value ? `${equipment.maintenanceFrequency.value} ${equipment.maintenanceFrequency.unit}` : 'N/D'} />
                         <DetailItem label="Último Mantenimiento" value={safeFormatDate(equipment.lastMaintenanceDate)} />
                         <DetailItem label="Próximo Mantenimiento" value={safeFormatDate(equipment.nextMaintenanceDate)} />
@@ -159,17 +170,20 @@ const EquipmentDetailPage: React.FC = () => {
                                 <p className="text-sm text-gray-700 mb-2">{record.description}</p>
 
                                 {/* --- INICIO DEL CAMBIO --- */}
-                                {record.attachmentPath && (
+                                {record.attachments && record.attachments.length > 0 && (
                                     <div className="mt-2">
-                                        <a
-                                            href={`http://localhost:4000/${record.attachmentPath.replace(/\\/g, '/')}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-sm text-bioren-blue-light hover:underline flex items-center"
-                                        >
-                                            <PaperClipIcon className="w-4 h-4 mr-1 flex-shrink-0" />
-                                            Ver/Descargar Adjunto
-                                        </a>
+                                        {record.attachments.map((attachment, index) => (
+                                            <a
+                                                key={index}
+                                                href={attachment.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-sm text-bioren-blue-light hover:underline flex items-center"
+                                            >
+                                                <PaperClipIcon className="w-4 h-4 mr-1 flex-shrink-0" />
+                                                {attachment.name}
+                                            </a>
+                                        ))}
                                     </div>
                                 )}
                                 {/* --- FIN DEL CAMBIO --- */}
@@ -193,6 +207,16 @@ const EquipmentDetailPage: React.FC = () => {
                         <Button type="submit">Guardar Registro</Button>
                     </div>
                 </form>
+            </Modal>
+
+            <Modal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} title="Confirmar Eliminación">
+                <div className="space-y-4">
+                    <p>¿Está seguro de que desea eliminar este equipo? Esta acción no se puede deshacer.</p>
+                    <div className="flex justify-end space-x-2">
+                        <Button variant="secondary" onClick={() => setIsDeleteModalOpen(false)}>Cancelar</Button>
+                        <Button variant="danger" onClick={confirmDelete}>Eliminar</Button>
+                    </div>
+                </div>
             </Modal>
         </div>
     );

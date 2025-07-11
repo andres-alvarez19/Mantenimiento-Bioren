@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import MainLayout from './components/layout/MainLayout';
 import LoginPage from './pages/LoginPage';
@@ -14,6 +14,7 @@ import IssuesListPage from './pages/IssuesListPage';
 import ReportsPage from './pages/ReportsPage';
 import AdminPage from './pages/AdminPage';
 import { UserRole } from './types';
+import ActivateInvitePage from './pages/ActivateInvitePage';
 
 // ProtectedRoute component
 const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: UserRole[] }> = ({ children, allowedRoles }) => {
@@ -36,6 +37,7 @@ const AppRoutes: React.FC = () => {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="invite/:token" element={<ActivateInvitePage />} />
       <Route path="/" element={<MainLayout />}>
         <Route index element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
         <Route path="equipment" element={<ProtectedRoute><EquipmentPage /></ProtectedRoute>} />
@@ -62,7 +64,7 @@ const AppRoutes: React.FC = () => {
             </ProtectedRoute>
         } />
         <Route path="admin/users" element={
-            <ProtectedRoute allowedRoles={[UserRole.BIOREN_ADMIN]}>
+            <ProtectedRoute allowedRoles={[UserRole.BIOREN_ADMIN, UserRole.UNIT_MANAGER]}>
                 <AdminPage />
             </ProtectedRoute>
         } />
@@ -81,9 +83,9 @@ const AppRoutes: React.FC = () => {
 const App: React.FC = () => {
   return (
     <AuthProvider>
-      <HashRouter>
+      <BrowserRouter>
         <AppRoutes />
-      </HashRouter>
+      </BrowserRouter>
     </AuthProvider>
   );
 };

@@ -10,8 +10,7 @@ import Button from '../components/ui/Button';
 import { PlusCircleIcon, FunnelIcon } from '@heroicons/react/24/solid';
 import { useAuth } from '../contexts/AuthContext';
 import TextInput from '../components/ui/TextInput';
-import { calculateMaintenanceDetails } from '../utils/maintenance';
-import { getEquipments } from '../lib/api/services/equipmentService';
+import { getEquipments, deleteEquipment } from '../lib/api/services/equipmentService';
 
 const EquipmentPage: React.FC = () => {
     const [allEquipment, setAllEquipment] = useState<Equipment[]>([]);
@@ -23,6 +22,8 @@ const EquipmentPage: React.FC = () => {
     const { currentUser } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
+    const [error, setError] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
 
     // Dentro de EquipmentPage.tsx
 
@@ -32,8 +33,12 @@ const EquipmentPage: React.FC = () => {
                 const dataFromApi: any[] = await getEquipments();
                 const transformedData: Equipment[] = dataFromApi.map(transformApiDataToEquipment);
                 setAllEquipment(transformedData);
+                setError(null);
+                setIsLoading(false);
             } catch (error) {
                 console.error("Error al obtener los equipos:", error);
+                setError('No se pudieron cargar los equipos.');
+                setIsLoading(false);
             }
         };
         fetchEquipment();
@@ -84,15 +89,7 @@ const EquipmentPage: React.FC = () => {
         }
 
         try {
-            const response = await fetch(`http://localhost:4000/api/equipment/${deletingEquipmentId}`, {
-                method: 'DELETE',
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || "Error al eliminar el equipo.");
-            }
-
+            await deleteEquipment(deletingEquipmentId);
             alert("¡Equipo eliminado exitosamente!");
             // Actualizamos el estado local para quitar el equipo de la lista sin recargar la página
             setAllEquipment(prev => prev.filter(eq => eq.id !== deletingEquipmentId));
@@ -120,60 +117,74 @@ const EquipmentPage: React.FC = () => {
                 )}
             </div>
 
-            <div className="bg-white p-4 shadow rounded-md flex space-x-4 items-end">
-                <TextInput
-                    label="Buscar Equipo" id="searchEquipment"
-                    placeholder="ID, Nombre, Marca, Modelo..."
-                    value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-                    containerClassName="flex-grow"
-                />
-                <div className="flex-shrink-0">
-                    <label htmlFor="statusFilter" className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
-                    <select
-                        id="statusFilter" value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                        className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-bioren-blue-light focus:border-bioren-blue-light sm:text-sm rounded-md"
-                    >
-                        <option value="">Todos</option>
-                        <option value="OK">OK</option>
-                        <option value="Advertencia">Advertencia</option>
-                        <option value="Vencido">Vencido</option>
-                    </select>
+            {error ? (
+                <div className="bg-red-100 text-red-700 p-4 rounded shadow text-center">
+                    {error}
                 </div>
-                <Button variant="secondary" onClick={() => { setSearchTerm(''); setStatusFilter('');}} leftIcon={<FunnelIcon className="w-4 h-4 mr-1"/>}>Limpiar Filtros</Button>
-            </div>
+            ) : (
+                <>
+                    <div className="bg-white p-4 shadow rounded-md flex space-x-4 items-end">
+                        <TextInput
+                            label="Buscar Equipo" id="searchEquipment"
+                            placeholder="ID, Nombre, Marca, Modelo..."
+                            value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+                            containerClassName="flex-grow"
+                        />
+                        <div className="flex-shrink-0">
+                            <label htmlFor="statusFilter" className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                            <select
+                                id="statusFilter" value={statusFilter}
+                                onChange={(e) => setStatusFilter(e.target.value)}
+                                className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-bioren-blue-light focus:border-bioren-blue-light sm:text-sm rounded-md"
+                            >
+                                <option value="">Todos</option>
+                                <option value="OK">OK</option>
+                                <option value="Advertencia">Advertencia</option>
+                                <option value="Vencido">Vencido</option>
+                            </select>
+                        </div>
+                        <Button variant="secondary" onClick={() => { setSearchTerm(''); setStatusFilter('');}} leftIcon={<FunnelIcon className="w-4 h-4 mr-1"/>}>Limpiar Filtros</Button>
+                    </div>
 
-            <div className="bg-white shadow overflow-x-auto rounded-lg">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                    <tr>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ubicación</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Próx. Mantenimiento</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Criticidad</th>
-                        <th scope="col" className="relative px-6 py-3"><span className="sr-only">Acciones</span></th>
-                    </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredEquipment.length > 0 ? (
-                        filteredEquipment.map(equipment => (
-                            <EquipmentListItem
-                                key={equipment.id} equipment={equipment}
-                                onDelete={handleDeleteEquipment}
-                            />
-                        ))
-                    ) : (
-                        <tr>
-                            <td colSpan={7} className="px-6 py-12 text-center text-sm text-gray-500">
-                                Cargando equipos o no hay equipos para mostrar...
-                            </td>
-                        </tr>
-                    )}
-                    </tbody>
-                </table>
-            </div>
+                    <div className="bg-white shadow overflow-x-auto rounded-lg">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                            <tr>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ubicación</th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Próx. Mantenimiento</th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Criticidad</th>
+                                <th scope="col" className="relative px-6 py-3"><span className="sr-only">Acciones</span></th>
+                            </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                            {isLoading ? (
+                                <tr>
+                                    <td colSpan={7} className="px-6 py-12 text-center text-sm text-gray-500">
+                                        Cargando equipos...
+                                    </td>
+                                </tr>
+                            ) : filteredEquipment.length > 0 ? (
+                                filteredEquipment.map(equipment => (
+                                    <EquipmentListItem
+                                        key={equipment.id} equipment={equipment}
+                                        onDelete={handleDeleteEquipment}
+                                    />
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan={7} className="px-6 py-12 text-center text-sm text-gray-500">
+                                        No hay equipos para mostrar.
+                                    </td>
+                                </tr>
+                            )}
+                            </tbody>
+                        </table>
+                    </div>
+                </>
+            )}
 
             {isConfirmDeleteModalOpen && (
                 <Modal

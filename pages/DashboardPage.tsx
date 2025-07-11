@@ -12,16 +12,18 @@ import SimpleBarChart from '../components/charts/SimpleBarChart';
 
 import { Equipment, IssueReport, ChartDataPoint, UserRole } from '../types';
 import { calculateMaintenanceDetails, transformApiDataToEquipment } from '../utils/maintenance';
-import { getEquipments } from '../lib/api/services/equipmentService';
+import { getEquipments, EquipmentResponse } from '../lib/api/services/equipmentService';
 import { getIssueReports } from '../lib/api/services/issueReportService';
+import { WrenchScrewdriverIcon, CheckCircleIcon, ClockIcon, ExclamationTriangleIcon } from '@heroicons/react/24/solid';
 
 const DashboardPage: React.FC = () => {
     const navigate = useNavigate();
     const { currentUser } = useAuth();
 
-    const [allEquipment, setAllEquipment] = useState<Equipment[]>([]);
+    const [allEquipment, setAllEquipment] = useState<EquipmentResponse[]>([]);
     const [allIssues, setAllIssues] = useState<IssueReport[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchDashboardData = async () => {
@@ -30,11 +32,12 @@ const DashboardPage: React.FC = () => {
                     getEquipments(),
                     getIssueReports(),
                 ]);
-                setEquipment(equipData);
-                setIssues(issuesData);
+                setAllEquipment(equipData);
+                setAllIssues(issuesData);
+                setError(null);
             } catch (error) {
                 console.error(error);
-                alert("No se pudieron cargar los datos para el dashboard.");
+                setError('No se pudieron cargar los datos para el dashboard.');
             } finally {
                 setIsLoading(false);
             }
@@ -48,14 +51,14 @@ const DashboardPage: React.FC = () => {
         // Si es Jefe de Unidad, filtra por la unidad del usuario
         if (currentUser?.role === UserRole.UNIT_MANAGER && currentUser.unit) {
             const filteredEquipment = allEquipment.filter(eq => eq.locationUnit === currentUser.unit);
-            const filteredEquipmentIds = filteredEquipment.map(eq => eq.id);
+            const filteredEquipmentIds = filteredEquipment.map(eq => eq.id.toString());
             const filteredIssues = allIssues.filter(issue => filteredEquipmentIds.includes(issue.equipmentId));
             return { equipment: filteredEquipment, issues: filteredIssues };
         }
-        // Si es Encargado, filtra por los equipos asignados a su nombre
-        else if (currentUser?.role === UserRole.ENCARGADO) {
-            const filteredEquipment = allEquipment.filter(eq => eq.encargado === currentUser.name);
-            const filteredEquipmentIds = filteredEquipment.map(eq => eq.id);
+        // Si es Encargado, filtra por los equipos asignados a su usuario
+        else if (currentUser?.role === UserRole.EQUIPMENT_MANAGER && currentUser.id) {
+            const filteredEquipment = allEquipment.filter(eq => eq.encargado && eq.encargado.id === parseInt(currentUser.id));
+            const filteredEquipmentIds = filteredEquipment.map(eq => eq.id.toString());
             const filteredIssues = allIssues.filter(issue => filteredEquipmentIds.includes(issue.equipmentId));
             return { equipment: filteredEquipment, issues: filteredIssues };
         }
@@ -63,10 +66,39 @@ const DashboardPage: React.FC = () => {
         return { equipment: allEquipment, issues: allIssues };
     }, [currentUser, allEquipment, allIssues]);
 
+    // Función helper para convertir EquipmentResponse a Equipment
+    const mapToEquipment = (equip: EquipmentResponse): Equipment => ({
+        id: equip.id.toString(),
+        institutionalId: equip.institutionalId,
+        name: equip.name,
+        brand: equip.brand,
+        model: equip.model,
+        locationBuilding: equip.locationBuilding,
+        locationUnit: equip.locationUnit,
+        lastCalibrationDate: equip.lastCalibrationDate,
+        lastMaintenanceDate: equip.lastMaintenanceDate,
+        encargado: equip.encargado ? {
+            id: equip.encargado.id.toString(),
+            name: equip.encargado.name,
+            email: equip.encargado.email,
+            role: equip.encargado.role as UserRole,
+            unit: equip.encargado.unit
+        } : undefined,
+        maintenanceFrequency: equip.maintenanceFrequency || { value: 0, unit: 'MONTHS' as any },
+        maintenanceRecords: equip.maintenanceRecords,
+        customMaintenanceInstructions: equip.customMaintenanceInstructions,
+        criticality: equip.criticality as any,
+        status: equip.status as any,
+        nextMaintenanceDate: equip.nextMaintenanceDate,
+        purchasedByGovernment: equip.purchasedByGovernment
+    });
 
     // El resto del código no cambia, ya que ahora operará sobre los datos filtrados en 'userFilteredData'
     const equipmentStats = useMemo(() => {
-        const processedEquipment = userFilteredData.equipment.map(calculateMaintenanceDetails);
+        const processedEquipment = userFilteredData.equipment.map(equip => {
+            const equipment = mapToEquipment(equip);
+            return calculateMaintenanceDetails(equipment);
+        });
 
         const okCount = processedEquipment.filter(e => e.status === 'OK').length;
         const warningCount = processedEquipment.filter(e => e.status === 'Advertencia').length;
@@ -104,13 +136,20 @@ const DashboardPage: React.FC = () => {
         return Object.values(issueCounts)
             .sort((a, b) => b.count - a.count)
             .slice(0, 5)
-            .map(item => ({ name: item.name.substring(0, 15) + "...", value: item.count }));
+            .map(item => ({ 
+                name: (item.name || 'Sin nombre').substring(0, 15) + "...", 
+                value: item.count 
+            }));
     }, [userFilteredData.equipment, userFilteredData.issues]);
     // --- FIN DE LA CORRECCIÓN ---
 
 
     if (isLoading) {
         return <div className="text-center py-10">Cargando datos del panel...</div>;
+    }
+
+    if (error) {
+        return <div className="bg-red-100 text-red-700 p-4 rounded shadow text-center">{error}</div>;
     }
 
     // El resto del JSX no cambia

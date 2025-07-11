@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { BellIcon, UserCircleIcon, ArrowLeftOnRectangleIcon } from '@heroicons/react/24/outline';
-import { MOCK_NOTIFICATIONS } from '../../constants'; // Using mock notifications
+import { getNotifications } from '../../lib/api/services/notificationService';
 import { AppNotification } from '../../types';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale/es'; // Import Spanish locale
@@ -11,9 +11,28 @@ const Header: React.FC = () => {
   const { currentUser, logout } = useAuth();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [loadingNotifications, setLoadingNotifications] = useState(true);
+  const [notificationsError, setNotificationsError] = useState<string | null>(null);
 
-  // Simulate unread notifications count
-  const unreadNotificationsCount = MOCK_NOTIFICATIONS.filter(n => !n.isRead).length;
+  // Unread notifications count
+  const unreadNotificationsCount = notifications.filter(n => !n.isRead).length;
+
+  React.useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        setLoadingNotifications(true);
+        setNotificationsError(null);
+        const data = await getNotifications();
+        setNotifications(data);
+      } catch (err) {
+        setNotificationsError('No se pudieron cargar las notificaciones.');
+      } finally {
+        setLoadingNotifications(false);
+      }
+    };
+    fetchNotifications();
+  }, []);
 
   if (!currentUser) return null; // Should not happen if routing is correct
 
@@ -46,15 +65,19 @@ const Header: React.FC = () => {
                     <div className="px-4 py-2 border-b">
                       <h3 className="text-sm font-medium text-gray-900">Notificaciones</h3>
                     </div>
-                    {MOCK_NOTIFICATIONS.length === 0 ? (
+                    {loadingNotifications ? (
+                      <p className="text-sm text-gray-500 px-4 py-3">Cargando notificaciones...</p>
+                    ) : notificationsError ? (
+                      <p className="text-sm text-red-500 px-4 py-3">{notificationsError}</p>
+                    ) : notifications.length === 0 ? (
                        <p className="text-sm text-gray-500 px-4 py-3">No hay notificaciones nuevas.</p>
                     ) : (
-                      MOCK_NOTIFICATIONS.map((notification: AppNotification) => (
+                      notifications.map((notification: AppNotification) => (
                         <a
                           key={notification.id}
                           href={notification.link || '#'}
                           className={`block px-4 py-3 text-sm ${notification.isRead ? 'text-gray-500' : 'text-gray-700 font-medium'} hover:bg-gray-100 border-b last:border-b-0`}
-                          onClick={() => setNotificationsOpen(false)} // and mark as read ideally
+                          onClick={() => setNotificationsOpen(false)}
                         >
                           <p className={`font-semibold ${notification.type === 'error' ? 'text-red-600' : notification.type === 'warning' ? 'text-yellow-600' : 'text-blue-600'}`}>
                             {notification.message}

@@ -8,6 +8,8 @@ import SelectInput from '../ui/SelectInput';
 import DateInput from '../ui/DateInput';
 import TextareaInput from '../ui/TextareaInput';
 import { EQUIPMENT_CRITICALITY_OPTIONS, MAINTENANCE_FREQUENCY_UNITS_OPTIONS } from '../../constants';
+import { getUsers } from '../../lib/api/services/userService';
+import { checkInstitutionalIdExists } from '../../lib/api/services/equipmentService';
 
 interface EquipmentFormProps {
     initialData?: Equipment | null;
@@ -24,14 +26,13 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ initialData, onSubmit, on
     const [formData, setFormData] = useState<Partial<Equipment>>({});
     const [users, setUsers] = useState<User[]>([]); // Estado para guardar la lista de usuarios
     const [isLoadingUsers, setIsLoadingUsers] = useState(true); // Estado para saber si los usuarios están cargando
+    const [idCheckError, setIdCheckError] = useState<string | null>(null);
 
     // useEffect para cargar la lista de usuarios desde la API
     useEffect(() => {
         const fetchUsers = async () => {
             try {
-                const response = await fetch('http://localhost:4000/api/users');
-                if (!response.ok) throw new Error('No se pudo cargar la lista de encargados');
-                const data: User[] = await response.json();
+                const data = await getUsers();
                 setUsers(data);
             } catch (error) {
                 console.error(error);
@@ -48,12 +49,13 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ initialData, onSubmit, on
             name: '', brand: '', model: '', locationBuilding: '', locationUnit: '',
             maintenanceFrequency: getDefaultFrequency(),
             criticality: EquipmentCriticality.MEDIUM,
-            encargado: '',
+            encargado: undefined,
+            institutionalId: '',
         };
         if (initialData) {
             setFormData({ ...defaults, ...initialData });
         } else {
-            setFormData({ ...defaults, id: '' });
+            setFormData({ ...defaults });
         }
     }, [initialData]);
 
@@ -74,17 +76,44 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ initialData, onSubmit, on
         }));
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Aquí puedes añadir tu lógica de validación si es necesario
-        onSubmit(formData as Equipment);
+        setIdCheckError(null);
+        // Validar ID institucional único antes de enviar
+        if (!initialData) { // Solo al crear
+            const exists = await checkInstitutionalIdExists(formData.institutionalId || '');
+            if (exists) {
+                setIdCheckError('El ID institucional ya está registrado.');
+                return;
+            }
+        }
+        // Normalizar enums antes de enviar
+        const normalized: any = { ...formData };
+        // Convertir criticality a inglés si es necesario
+        if (normalized.criticality && typeof normalized.criticality === 'string') {
+            const critOpt = EQUIPMENT_CRITICALITY_OPTIONS.find(opt => opt.label === normalized.criticality || opt.value === normalized.criticality);
+            if (critOpt) normalized.criticality = critOpt.value;
+        }
+        // Convertir maintenanceFrequency.unit a inglés si es necesario
+        if (normalized.maintenanceFrequency && typeof normalized.maintenanceFrequency.unit === 'string') {
+            const freqOpt = MAINTENANCE_FREQUENCY_UNITS_OPTIONS.find(opt => opt.label === normalized.maintenanceFrequency.unit || opt.value === normalized.maintenanceFrequency.unit);
+            if (freqOpt) normalized.maintenanceFrequency.unit = freqOpt.value;
+        }
+        // Eliminar el campo id si existe (solo para creación)
+        delete normalized.id;
+        onSubmit(normalized as Equipment);
     };
 
     // Preparamos las opciones para el menú desplegable de usuarios
     const userOptions = users.map(user => ({
-        value: user.name, // El valor que se guardará será el nombre
-        label: `${user.name} (${user.role})` // Lo que se mostrará en la lista
+        value: user.id,
+        label: `${user.name} (${user.role})`
     }));
+
+    const handleEncargadoChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const selectedUser = users.find(u => String(u.id) === e.target.value);
+        setFormData(prev => ({ ...prev, encargado: selectedUser }));
+    };
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 shadow-xl rounded-lg my-6">
@@ -94,8 +123,21 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ initialData, onSubmit, on
 
             {/* Campos de ID y Nombre */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                <TextInput label="ID Institucional" id="id" name="id" value={formData.id || ''} onChange={handleChange} required disabled={!!initialData} />
+                <TextInput label="ID Institucional" id="institutionalId" name="institutionalId" value={formData.institutionalId || ''} onChange={handleChange} required disabled={!!initialData} />
                 <TextInput label="Nombre del Equipo" id="name" name="name" value={formData.name || ''} onChange={handleChange} required />
+            </div>
+            {idCheckError && <div className="text-red-600 text-sm mb-2">{idCheckError}</div>}
+
+            {/* Nuevo campo: ¿Comprado por el gobierno? */}
+            <div className="flex items-center space-x-2">
+                <input
+                    type="checkbox"
+                    id="purchasedByGovernment"
+                    name="purchasedByGovernment"
+                    checked={!!formData.purchasedByGovernment}
+                    onChange={e => setFormData(prev => ({ ...prev, purchasedByGovernment: e.target.checked }))}
+                />
+                <label htmlFor="purchasedByGovernment" className="text-sm text-gray-700">¿Comprado por el gobierno?</label>
             </div>
 
             {/* Campos de Marca y Modelo */}
@@ -134,10 +176,10 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ initialData, onSubmit, on
                     label="Encargado (Opcional)"
                     id="encargado"
                     name="encargado"
-                    value={formData.encargado || ''}
-                    onChange={handleChange}
-                    options={userOptions} // Usamos la lista de usuarios cargada desde la API
-                    disabled={isLoadingUsers} // El campo se deshabilita mientras carga los usuarios
+                    value={formData.encargado ? (formData.encargado as User).id : ''}
+                    onChange={handleEncargadoChange}
+                    options={userOptions}
+                    disabled={isLoadingUsers}
                 />
                 {/* --- FIN DEL CAMBIO --- */}
             </div>

@@ -3,11 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import { User, UserRole } from '../types';
 import Button from '../components/ui/Button';
-import { PencilSquareIcon, TrashIcon, UserPlusIcon } from '@heroicons/react/24/solid';
+import { PencilSquareIcon, TrashIcon, UserPlusIcon, ArrowPathIcon } from '@heroicons/react/24/solid';
 import Modal from '../components/ui/Modal';
 import TextInput from '../components/ui/TextInput';
 import SelectInput from '../components/ui/SelectInput';
-import { getUsers, createUser, updateUser, deleteUser } from '../lib/api/services/userService';
+import { getUsers, createUser, updateUser, deleteUser, resendInvitation } from '../lib/api/services/userService';
 
 const userRoleOptions = Object.values(UserRole).map(role => ({ value: role, label: role }));
 
@@ -16,6 +16,7 @@ const AdminPage: React.FC = () => {
     const [isUserModalOpen, setIsUserModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [userForm, setUserForm] = useState<Partial<User>>({ role: UserRole.EQUIPMENT_MANAGER });
+    const [error, setError] = useState<string | null>(null);
 
     // 1. useEffect para cargar los usuarios desde la API al iniciar
     useEffect(() => {
@@ -26,9 +27,10 @@ const AdminPage: React.FC = () => {
         try {
             const data: User[] = await getUsers();
             setUsers(data);
+            setError(null);
         } catch (error) {
             console.error(error);
-            alert('No se pudieron cargar los usuarios.');
+            setError('No se pudieron cargar los usuarios.');
         }
     };
 
@@ -56,6 +58,15 @@ const AdminPage: React.FC = () => {
                 console.error(error);
                 alert(`Error: ${error instanceof Error ? error.message : "Ocurrió un error"}`);
             }
+        }
+    };
+
+    const handleResendInvitation = async (userId: string | number) => {
+        try {
+            await resendInvitation(userId);
+            alert('Invitación reenviada exitosamente.');
+        } catch (error) {
+            alert(error instanceof Error ? error.message : 'No se pudo reenviar la invitación.');
         }
     };
 
@@ -89,39 +100,46 @@ const AdminPage: React.FC = () => {
         <div className="space-y-8">
             <h1 className="text-3xl font-semibold text-gray-800">Panel de Administración</h1>
 
-            <section className="bg-white p-6 shadow rounded-lg">
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-semibold text-gray-700">Gestión de Usuarios</h2>
-                    <Button onClick={handleAddUser} leftIcon={<UserPlusIcon className="w-5 h-5"/>}>Añadir Nuevo Usuario</Button>
+            {error ? (
+                <div className="bg-red-100 text-red-700 p-4 rounded shadow text-center">
+                    {error}
                 </div>
-                <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                        <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rol</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Unidad</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
-                        </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                        {users.map(user => (
-                            <tr key={user.id}>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user.name}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.role}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.unit || 'N/D'}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
-                                    <Button variant="ghost" size="sm" onClick={() => handleEditUser(user)} title={`Editar ${user.name}`}><PencilSquareIcon className="w-5 h-5 text-yellow-600"/></Button>
-                                    <Button variant="ghost" size="sm" onClick={() => handleDeleteUser(user.id)} title={`Eliminar ${user.name}`}><TrashIcon className="w-5 h-5 text-red-600"/></Button>
-                                </td>
+            ) : (
+                <section className="bg-white p-6 shadow rounded-lg">
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-xl font-semibold text-gray-700">Gestión de Usuarios</h2>
+                        <Button onClick={handleAddUser} leftIcon={<UserPlusIcon className="w-5 h-5"/>}>Añadir Nuevo Usuario</Button>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rol</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Unidad</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
                             </tr>
-                        ))}
-                        </tbody>
-                    </table>
-                </div>
-            </section>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                            {users.map(user => (
+                                <tr key={user.id}>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user.name}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.role}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.unit || 'N/D'}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
+                                        <Button variant="ghost" size="sm" onClick={() => handleEditUser(user)} title={`Editar ${user.name}`}><PencilSquareIcon className="w-5 h-5 text-yellow-600"/></Button>
+                                        <Button variant="ghost" size="sm" onClick={() => handleDeleteUser(user.id)} title={`Eliminar ${user.name}`}><TrashIcon className="w-5 h-5 text-red-600"/></Button>
+                                        <Button variant="ghost" size="sm" onClick={() => handleResendInvitation(user.id)} title={`Reenviar invitación a ${user.name}`}><ArrowPathIcon className="w-5 h-5 text-blue-600"/></Button>
+                                    </td>
+                                </tr>
+                            ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            )}
 
             {/* ... (La sección de Configuración del Sistema se queda igual) ... */}
 

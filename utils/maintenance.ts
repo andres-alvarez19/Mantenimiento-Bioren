@@ -63,17 +63,18 @@ export const calculateMaintenanceDetails = (equipment: Equipment): Equipment & {
 
 
 export const transformApiDataToEquipment = (apiData: any): Equipment => {
-    const {
-        maintenanceFrequencyValue,
-        maintenanceFrequencyUnit,
-        ...restOfData
-    } = apiData;
-
+    // Soportar ambos formatos: antiguo y nuevo
+    let maintenanceFrequency;
+    if (apiData.maintenanceFrequency && typeof apiData.maintenanceFrequency === 'object') {
+        maintenanceFrequency = apiData.maintenanceFrequency;
+    } else {
+        maintenanceFrequency = {
+            value: apiData.maintenanceFrequencyValue,
+            unit: apiData.maintenanceFrequencyUnit,
+        };
+    }
     return {
-        ...restOfData,
-        maintenanceFrequency: {
-            value: maintenanceFrequencyValue,
-            unit: maintenanceFrequencyUnit,
-        },
+        ...apiData,
+        maintenanceFrequency,
     };
 };
