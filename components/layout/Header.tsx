@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../hooks/useAuth';
 import { BellIcon, UserCircleIcon, ArrowLeftOnRectangleIcon } from '@heroicons/react/24/outline';
 import { getNotifications } from '../../lib/api/services/notificationService';
 import { AppNotification } from '../../types';

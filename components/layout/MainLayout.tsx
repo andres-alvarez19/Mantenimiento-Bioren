@@ -2,7 +2,7 @@
 import React from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../hooks/useAuth';
 import { Navigate, Outlet } from 'react-router-dom';
 
 const MainLayout: React.FC = () => {

@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { APP_NAME, NAVIGATION_ITEMS, QUICK_ISSUE_REPORT_PATH } from '../../constants';
-import { useAuth } from '../../contexts/AuthContext';
+import { APP_NAME, NAVIGATION_ITEMS, QUICK_ISSUE_REPORT_PATH } from '../../lib/config/constants';
+import { useAuth } from '../../hooks/useAuth';
 import { ShieldExclamationIcon } from '@heroicons/react/24/solid';
 import Button from '../ui/Button';
 

@@ -26,14 +26,6 @@ export const deleteUser = async (id: string): Promise<void> => {
 };
 
 export async function resendInvitation(userId: string | number) {
-  const res = await fetch(`/api/users/${userId}/resend-invitation`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-  });
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data.message || 'No se pudo reenviar la invitación.');
-  }
+  await apiClient.post(`/users/${userId}/resend-invitation`, {}, { withCredentials: true });
   return true;
-} 
+}

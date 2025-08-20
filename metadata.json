@@ -1,6 +1,0 @@
-{
-  "name": "Copy of BIOREN Equipment Manager",
-  "description": "A frontend prototype for managing scientific equipment at the BIOREN university research center. It includes features for equipment registration, maintenance tracking, issue reporting, and a visual dashboard. Data is mocked and functionalities like authentication and notifications are simulated.",
-  "requestFramePermissions": [],
-  "prompt": ""
-}
