@@ -1,8 +1,8 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { BellIcon, UserCircleIcon, ArrowLeftOnRectangleIcon } from '@heroicons/react/24/outline';
-import { getNotifications } from '@/lib/api/services/notificationService';
+import { BellIcon, UserCircleIcon, ArrowLeftOnRectangleIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { getNotifications, markAsRead, deleteNotification } from '@/lib/api/services/notificationService';
 import { AppNotification } from '@/types';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale/es'; // Import Spanish locale
@@ -18,21 +18,51 @@ const Header: React.FC = () => {
   // Unread notifications count
   const unreadNotificationsCount = notifications.filter(n => !n.isRead).length;
 
-  React.useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        setLoadingNotifications(true);
-        setNotificationsError(null);
-        const data = await getNotifications();
-        setNotifications(data);
-      } catch (err) {
-        setNotificationsError('No se pudieron cargar las notificaciones.');
-      } finally {
-        setLoadingNotifications(false);
-      }
-    };
-    fetchNotifications();
+  const fetchNotifications = React.useCallback(async () => {
+    try {
+      setLoadingNotifications(true);
+      setNotificationsError(null);
+      const data = await getNotifications();
+      setNotifications(data);
+    } catch (err) {
+      setNotificationsError('No se pudieron cargar las notificaciones.');
+    } finally {
+      setLoadingNotifications(false);
+    }
   }, []);
+
+  React.useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
+
+  const handleOpenNotification = async (notification: AppNotification) => {
+    try {
+      if (!notification.isRead) {
+        await markAsRead(notification.id);
+        await fetchNotifications();
+      }
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('No se pudo marcar la notificación como leída');
+    } finally {
+      setNotificationsOpen(false);
+      if (notification.link) {
+        window.location.href = notification.link;
+      }
+    }
+  };
+
+  const handleDeleteNotification = async (id: string) => {
+    const confirmed = window.confirm('¿Eliminar notificación?');
+    if (!confirmed) return;
+    try {
+      await deleteNotification(id);
+      alert('Notificación eliminada');
+      await fetchNotifications();
+    } catch (err) {
+      alert('No se pudo eliminar la notificación');
+    }
+  };
 
   if (!currentUser) return null; // Should not happen if routing is correct
 
@@ -73,18 +103,43 @@ const Header: React.FC = () => {
                        <p className="text-sm text-gray-500 px-4 py-3">No hay notificaciones nuevas.</p>
                     ) : (
                       notifications.map((notification: AppNotification) => (
-                        <a
+                        <div
                           key={notification.id}
-                          href={notification.link || '#'}
-                          className={`block px-4 py-3 text-sm ${notification.isRead ? 'text-gray-500' : 'text-gray-700 font-medium'} hover:bg-gray-100 border-b last:border-b-0`}
-                          onClick={() => setNotificationsOpen(false)}
+                          className={`flex items-start px-4 py-3 text-sm border-b last:border-b-0 hover:bg-gray-100 ${notification.isRead ? 'bg-white text-gray-500' : 'bg-gray-50 text-gray-700 font-medium'}`}
                         >
-                          <p className={`font-semibold ${notification.type === 'error' ? 'text-red-600' : notification.type === 'warning' ? 'text-yellow-600' : 'text-blue-600'}`}>
-                            {notification.message}
-                          </p>
-                          {notification.details && <p className="text-xs text-gray-500">{notification.details}</p>}
-                          <p className="text-xs text-gray-400 mt-1">{format(new Date(notification.timestamp), 'MMM d, yyyy HH:mm', { locale: es })}</p>
-                        </a>
+                          <button
+                            className="flex-1 text-left"
+                            onClick={() => handleOpenNotification(notification)}
+                          >
+                            <p
+                              className={`font-semibold ${
+                                notification.type === 'error'
+                                  ? 'text-red-600'
+                                  : notification.type === 'warning'
+                                  ? 'text-yellow-600'
+                                  : 'text-blue-600'
+                              }`}
+                            >
+                              {notification.message}
+                            </p>
+                            {notification.details && (
+                              <p className="text-xs text-gray-500">{notification.details}</p>
+                            )}
+                            <p className="text-xs text-gray-400 mt-1">
+                              {format(
+                                new Date(notification.timestamp),
+                                'MMM d, yyyy HH:mm',
+                                { locale: es }
+                              )}
+                            </p>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteNotification(notification.id)}
+                            className="ml-2 text-gray-400 hover:text-red-600"
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                          </button>
+                        </div>
                       ))
                     )}
                     <div className="px-4 py-2 border-t">
