@@ -29,3 +29,13 @@ export async function resendInvitation(userId: string | number) {
   await apiClient.post(`/users/${userId}/resend-invitation`, {}, { withCredentials: true });
   return true;
 }
+
+export const changePassword = async (
+  currentPassword: string,
+  newPassword: string
+): Promise<void> => {
+  await apiClient.post('/users/change-password', {
+    currentPassword,
+    newPassword,
+  });
+};
