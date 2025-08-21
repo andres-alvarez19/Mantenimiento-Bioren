@@ -1,0 +1,732 @@
+openapi: 3.0.0
+info:
+  title: Bioren Backend API
+  version: '1.0.0'
+paths:
+  /api/auth/login:
+    post:
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: JWT token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Unauthorized
+  /api/auth/forgot-password:
+    post:
+      summary: Request password reset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+      responses:
+        '200':
+          description: Email sent
+        '404':
+          description: User not found
+  /api/auth/reset-password:
+    post:
+      summary: Reset password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+      responses:
+        '200':
+          description: Password reset
+        '400':
+          description: Invalid token or password
+  /api/invitations/validate:
+    get:
+      summary: Validate invitation token
+      parameters:
+        - in: query
+          name: token
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Token valid
+        '400':
+          description: Token invalid or expired
+  /api/invitations/activate:
+    post:
+      summary: Activate account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActivateRequest'
+      responses:
+        '200':
+          description: Account activated
+        '400':
+          description: Token invalid or password too short
+  /api/users:
+    get:
+      summary: List users
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+    post:
+      summary: Create user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '200':
+          description: Created user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+  /api/users/{id}:
+    get:
+      summary: Get user by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: User
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+    put:
+      summary: Update user
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '200':
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+    delete:
+      summary: Delete user
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: User deleted
+  /api/users/change-password:
+    post:
+      summary: Change password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '200':
+          description: Password changed
+  /api/users/{id}/resend-invitation:
+    post:
+      summary: Resend invitation
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Invitation resent
+  /api/equipment:
+    get:
+      summary: List equipment
+      responses:
+        '200':
+          description: List of equipment
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EquipmentDTO'
+    post:
+      summary: Create equipment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Equipment'
+      responses:
+        '200':
+          description: Created equipment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Equipment'
+  /api/equipment/{id}:
+    get:
+      summary: Get equipment by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Equipment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentDTO'
+    put:
+      summary: Update equipment
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Equipment'
+      responses:
+        '200':
+          description: Updated equipment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Equipment'
+    delete:
+      summary: Delete equipment
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Equipment deleted
+  /api/equipment/exists/institutionalId/{institutionalId}:
+    get:
+      summary: Check equipment by institutional ID
+      parameters:
+        - in: path
+          name: institutionalId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Exists flag
+          content:
+            application/json:
+              schema:
+                type: boolean
+  /api/maintenance:
+    get:
+      summary: List maintenance records
+      responses:
+        '200':
+          description: List of maintenance records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MaintenanceRecord'
+    post:
+      summary: Create maintenance record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MaintenanceRecord'
+      responses:
+        '200':
+          description: Created maintenance record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MaintenanceRecord'
+  /api/maintenance/{id}:
+    get:
+      summary: Get maintenance record by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Maintenance record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MaintenanceRecord'
+    put:
+      summary: Update maintenance record
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MaintenanceRecord'
+      responses:
+        '200':
+          description: Updated maintenance record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MaintenanceRecord'
+    delete:
+      summary: Delete maintenance record
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Record deleted
+  /api/issues:
+    get:
+      summary: List issue reports
+      responses:
+        '200':
+          description: List of issue reports
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/IssueReport'
+    post:
+      summary: Create issue report
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IssueReport'
+      responses:
+        '200':
+          description: Created issue report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssueReport'
+  /api/issues/{id}:
+    get:
+      summary: Get issue report by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Issue report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssueReport'
+    put:
+      summary: Update issue report
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IssueReport'
+      responses:
+        '200':
+          description: Updated issue report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssueReport'
+    delete:
+      summary: Delete issue report
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Issue report deleted
+  /api/notifications:
+    get:
+      summary: List notifications
+      responses:
+        '200':
+          description: List of notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AppNotification'
+  /api/notifications/{id}/read:
+    put:
+      summary: Mark notification as read
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Notification marked as read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppNotification'
+  /api/notifications/{id}:
+    delete:
+      summary: Delete notification
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Notification deleted
+components:
+  schemas:
+    AppNotification:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        type:
+          type: string
+        message:
+          type: string
+        details:
+          type: string
+        link:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        isRead:
+          type: boolean
+    IssueReport:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        equipment:
+          $ref: '#/components/schemas/Equipment'
+        reportedBy:
+          type: string
+        dateTime:
+          type: string
+          format: date-time
+        description:
+          type: string
+        severity:
+          $ref: '#/components/schemas/IssueSeverity'
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/IssueReportAttachment'
+        status:
+          type: string
+    IssueReportAttachment:
+      type: object
+      properties:
+        name:
+          type: string
+        url:
+          type: string
+    IssueSeverity:
+      type: string
+      enum: [MINOR, MODERATE, CRITICAL]
+    Equipment:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        brand:
+          type: string
+        model:
+          type: string
+        institutionalId:
+          type: string
+        locationBuilding:
+          type: string
+        locationUnit:
+          type: string
+        lastCalibrationDate:
+          type: string
+          format: date
+        lastMaintenanceDate:
+          type: string
+          format: date
+        createdDate:
+          type: string
+          format: date
+        encargado:
+          $ref: '#/components/schemas/User'
+        maintenanceFrequency:
+          $ref: '#/components/schemas/EquipmentMaintenanceFrequency'
+        maintenanceRecords:
+          type: array
+          items:
+            $ref: '#/components/schemas/MaintenanceRecord'
+        customMaintenanceInstructions:
+          type: string
+        criticality:
+          $ref: '#/components/schemas/EquipmentCriticality'
+        status:
+          type: string
+        nextMaintenanceDate:
+          type: string
+          format: date
+        purchasedByGovernment:
+          type: boolean
+    EquipmentMaintenanceFrequency:
+      type: object
+      properties:
+        value:
+          type: integer
+        unit:
+          $ref: '#/components/schemas/MaintenanceFrequencyUnit'
+    MaintenanceFrequencyUnit:
+      type: string
+      enum: [DAYS, WEEKS, MONTHS, YEARS]
+    EquipmentCriticality:
+      type: string
+      enum: [LOW, MEDIUM, HIGH]
+    EquipmentDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        institutionalId:
+          type: string
+        name:
+          type: string
+        brand:
+          type: string
+        model:
+          type: string
+        locationBuilding:
+          type: string
+        locationUnit:
+          type: string
+        lastCalibrationDate:
+          type: string
+          format: date
+        lastMaintenanceDate:
+          type: string
+          format: date
+        encargado:
+          $ref: '#/components/schemas/EquipmentDTOUser'
+        maintenanceFrequency:
+          $ref: '#/components/schemas/EquipmentMaintenanceFrequency'
+        maintenanceRecords:
+          type: array
+          items:
+            $ref: '#/components/schemas/MaintenanceRecord'
+        customMaintenanceInstructions:
+          type: string
+        criticality:
+          $ref: '#/components/schemas/EquipmentCriticality'
+        status:
+          type: string
+        nextMaintenanceDate:
+          type: string
+          format: date
+        purchasedByGovernment:
+          type: boolean
+    EquipmentDTOUser:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          $ref: '#/components/schemas/UserRole'
+        unit:
+          type: string
+    MaintenanceRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        date:
+          type: string
+          format: date
+        description:
+          type: string
+        performedBy:
+          type: string
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/MaintenanceRecordAttachment'
+    MaintenanceRecordAttachment:
+      type: object
+      properties:
+        name:
+          type: string
+        url:
+          type: string
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          $ref: '#/components/schemas/UserRole'
+        unit:
+          type: string
+        enabled:
+          type: boolean
+        mustChangePassword:
+          type: boolean
+        password:
+          type: string
+          nullable: true
+    UserRole:
+      type: string
+      enum: [BIOREN_ADMIN, UNIT_MANAGER, EQUIPMENT_MANAGER]
+    ChangePasswordRequest:
+      type: object
+      properties:
+        currentPassword:
+          type: string
+        newPassword:
+          type: string
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+    ForgotPasswordRequest:
+      type: object
+      properties:
+        email:
+          type: string
+    ResetPasswordRequest:
+      type: object
+      properties:
+        token:
+          type: string
+        password:
+          type: string
+    ActivateRequest:
+      type: object
+      properties:
+        token:
+          type: string
+        password:
+          type: string
