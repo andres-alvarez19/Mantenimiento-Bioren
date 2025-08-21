@@ -4,6 +4,8 @@ import { MOCK_UNITS, MOCK_LABS } from '@/lib/config/constants';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import TextInput from '@/components/ui/TextInput';
+import Alert from '@/components/ui/Alert';
+import { changePassword } from '@/lib/api/services/userService';
 import { PencilSquareIcon, TrashIcon, PlusIcon } from '@heroicons/react/24/solid';
 
 // Reusable component for managing a list of items (Units or Labs)
@@ -60,7 +62,41 @@ const ManagementSection: React.FC<{
 const SettingsPage: React.FC = () => {
     const [units, setUnits] = useState<Unit[]>(MOCK_UNITS);
     const [labs, setLabs] = useState<Laboratory[]>(MOCK_LABS);
-    
+
+    // Change password states
+    const [currentPassword, setCurrentPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [passwordError, setPasswordError] = useState<string | null>(null);
+    const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
+    const [passwordLoading, setPasswordLoading] = useState(false);
+
+    const handlePasswordSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setPasswordError(null);
+        setPasswordSuccess(null);
+        if (newPassword.length < 12) {
+            setPasswordError('La contraseña debe tener al menos 12 caracteres.');
+            return;
+        }
+        if (newPassword !== confirmPassword) {
+            setPasswordError('Las contraseñas no coinciden.');
+            return;
+        }
+        setPasswordLoading(true);
+        try {
+            await changePassword(currentPassword, newPassword);
+            setPasswordSuccess('Contraseña actualizada correctamente.');
+            setCurrentPassword('');
+            setNewPassword('');
+            setConfirmPassword('');
+        } catch (err: any) {
+            setPasswordError(err?.response?.data?.message || 'No se pudo cambiar la contraseña.');
+        } finally {
+            setPasswordLoading(false);
+        }
+    };
+
     // Modal states
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [modalType, setModalType] = useState<'Unit' | 'Laboratory' | null>(null);
@@ -136,6 +172,57 @@ const SettingsPage: React.FC = () => {
     return (
         <div className="space-y-8">
             <h1 className="text-3xl font-semibold text-gray-800">System Settings</h1>
+
+            <section className="bg-white p-6 shadow rounded-lg max-w-md">
+                <h2 className="text-xl font-semibold text-gray-700 mb-4">Cambiar contraseña</h2>
+                <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                    <TextInput
+                        label="Contraseña actual"
+                        type="password"
+                        id="currentPassword"
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        required
+                    />
+                    <TextInput
+                        label="Nueva contraseña"
+                        type="password"
+                        id="newPassword"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        required
+                    />
+                    <TextInput
+                        label="Confirmar nueva contraseña"
+                        type="password"
+                        id="confirmPassword"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        required
+                    />
+                    <Button type="submit" variant="primary" disabled={passwordLoading}>
+                        {passwordLoading ? 'Guardando...' : 'Cambiar contraseña'}
+                    </Button>
+                </form>
+                {passwordSuccess && (
+                    <Alert
+                        type="success"
+                        title="Éxito"
+                        message={passwordSuccess}
+                        onClose={() => setPasswordSuccess(null)}
+                        className="mt-4"
+                    />
+                )}
+                {passwordError && (
+                    <Alert
+                        type="error"
+                        title="Error"
+                        message={passwordError}
+                        onClose={() => setPasswordError(null)}
+                        className="mt-4"
+                    />
+                )}
+            </section>
 
             <ManagementSection
                 title="Manage Units"
