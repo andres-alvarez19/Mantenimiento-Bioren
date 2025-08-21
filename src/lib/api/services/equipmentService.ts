@@ -1,5 +1,9 @@
 import apiClient from '@/lib/api/client/apiClient';
 import { Equipment } from '@/types';
+import {
+  createMaintenanceRecord as createMaintenanceRecordApi,
+  MaintenanceRecordRequest,
+} from './maintenanceService';
 
 // Tipo para la respuesta del backend (DTO)
 export interface EquipmentResponse {
@@ -60,10 +64,12 @@ export const checkInstitutionalIdExists = async (institutionalId: string): Promi
   return response.data;
 };
 
-export const createMaintenanceRecord = async (equipmentId: string, maintenanceData: FormData): Promise<void> => {
-  await apiClient.post(`/equipment/${equipmentId}/maintenance`, maintenanceData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
+export const createMaintenanceRecord = async (
+  equipmentId: string,
+  maintenanceData: Omit<MaintenanceRecordRequest, 'equipment'>
+): Promise<void> => {
+  await createMaintenanceRecordApi({
+    ...maintenanceData,
+    equipment: { id: equipmentId },
   });
-}; 
+};
