@@ -15,8 +15,8 @@ import { useAuth } from '@/hooks/useAuth';
 import Modal from '@/components/ui/Modal';
 import TextInput from '@/components/ui/TextInput';
 import DateInput from '@/components/ui/DateInput';
-import FileInput from '@/components/ui/FileInput';
 import { getEquipmentById, deleteEquipment, createMaintenanceRecord } from '@/lib/api/services/equipmentService';
+import { getMaintenanceRecords } from '@/lib/api/services/maintenanceService';
 
 const DetailItem: React.FC<{ label: string; value?: string | number | React.ReactNode; className?: string }> = ({ label, value, className }) => (
     <div className={`py-3 sm:grid sm:grid-cols-3 sm:gap-4 ${className}`}>
@@ -37,7 +37,19 @@ const EquipmentDetailPage: React.FC = () => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
     const [maintForm, setMaintForm] = useState({ description: '', performedBy: '', date: '' });
-    const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
+
+    const loadMaintenanceHistory = async () => {
+        if (!equipmentId) return;
+        try {
+            const records = await getMaintenanceRecords();
+            const equipmentRecords = records.filter(
+                (r: any) => r.equipment?.id?.toString() === equipmentId
+            );
+            setMaintenanceHistory(equipmentRecords);
+        } catch (err) {
+            console.error(err);
+        }
+    };
 
     const fetchAllData = async () => {
         if (!equipmentId) return;
@@ -47,8 +59,7 @@ const EquipmentDetailPage: React.FC = () => {
             const transformedData = transformApiDataToEquipment(equipData);
             const processedData = calculateMaintenanceDetails(transformedData);
             setEquipment(processedData);
-            // Los registros de mantenimiento ya vienen en la respuesta del equipo
-            setMaintenanceHistory(equipData.maintenanceRecords || []);
+            await loadMaintenanceHistory();
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Ocurrió un error');
         } finally {
@@ -64,29 +75,21 @@ const EquipmentDetailPage: React.FC = () => {
         setMaintForm({ ...maintForm, [e.target.name]: e.target.value });
     };
 
-    const handleFileChange = (file: File | null) => {
-        setAttachmentFile(file);
-    };
-
     const handleMaintSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!equipmentId) return;
-
-        const formData = new FormData();
-        formData.append('description', maintForm.description);
-        formData.append('performedBy', maintForm.performedBy);
-        formData.append('date', maintForm.date);
-        if (attachmentFile) {
-            formData.append('attachment', attachmentFile);
-        }
+        const payload = {
+            description: maintForm.description,
+            performedBy: maintForm.performedBy,
+            date: maintForm.date,
+        };
 
         try {
-            await createMaintenanceRecord(equipmentId, formData);
+            await createMaintenanceRecord(equipmentId, payload);
             alert('Registro de mantenimiento guardado exitosamente.');
             setIsModalOpen(false);
             setMaintForm({ description: '', performedBy: '', date: '' });
-            setAttachmentFile(null);
-            fetchAllData();
+            await loadMaintenanceHistory();
         } catch (error) {
             alert(`Error: ${error instanceof Error ? error.message : "Ocurrió un error"}`);
         }
@@ -201,7 +204,6 @@ const EquipmentDetailPage: React.FC = () => {
                     <DateInput label="Fecha del Mantenimiento" name="date" value={maintForm.date} onChange={handleFormChange} required />
                     <TextInput label="Realizado Por" name="performedBy" value={maintForm.performedBy} onChange={handleFormChange} required />
                     <TextInput label="Descripción del Trabajo" name="description" value={maintForm.description} onChange={handleFormChange} required />
-                    <FileInput label="Adjuntar PDF (Opcional)" id="attachment" name="attachment" onFileChange={handleFileChange} />
                     <div className="flex justify-end pt-4 space-x-2">
                         <Button type="button" variant="secondary" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
                         <Button type="submit">Guardar Registro</Button>
