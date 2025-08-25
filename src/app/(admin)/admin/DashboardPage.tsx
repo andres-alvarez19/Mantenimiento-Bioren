@@ -52,14 +52,14 @@ const DashboardPage: React.FC = () => {
         if (currentUser?.role === UserRole.UNIT_MANAGER && currentUser.unit) {
             const filteredEquipment = allEquipment.filter(eq => eq.locationUnit === currentUser.unit);
             const filteredEquipmentIds = filteredEquipment.map(eq => eq.id.toString());
-            const filteredIssues = allIssues.filter(issue => filteredEquipmentIds.includes(issue.equipmentId));
+            const filteredIssues = allIssues.filter(issue => filteredEquipmentIds.includes(issue.equipment.id));
             return { equipment: filteredEquipment, issues: filteredIssues };
         }
         // Si es Encargado, filtra por los equipos asignados a su usuario
         else if (currentUser?.role === UserRole.EQUIPMENT_MANAGER && currentUser.id) {
             const filteredEquipment = allEquipment.filter(eq => eq.encargado && eq.encargado.id === parseInt(currentUser.id));
             const filteredEquipmentIds = filteredEquipment.map(eq => eq.id.toString());
-            const filteredIssues = allIssues.filter(issue => filteredEquipmentIds.includes(issue.equipmentId));
+            const filteredIssues = allIssues.filter(issue => filteredEquipmentIds.includes(issue.equipment.id));
             return { equipment: filteredEquipment, issues: filteredIssues };
         }
         // Si es admin, ve todos los datos
@@ -129,8 +129,9 @@ const DashboardPage: React.FC = () => {
             issueCounts[eq.id] = { name: eq.name, count: 0 };
         });
         userFilteredData.issues.forEach(issue => {
-            if (issueCounts[issue.equipmentId]) {
-                issueCounts[issue.equipmentId].count++;
+            const eqId = issue.equipment.id;
+            if (issueCounts[eqId]) {
+                issueCounts[eqId].count++;
             }
         });
         return Object.values(issueCounts)

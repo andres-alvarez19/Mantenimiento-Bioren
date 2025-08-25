@@ -87,7 +87,7 @@ const IssuesListPage: React.FC = () => {
             const unitEquipmentIds = allEquipment
                 .filter((eq: any) => eq.locationUnit === currentUser.unit)
                 .map((eq: any) => eq.id);
-            tempIssues = tempIssues.filter(issue => unitEquipmentIds.includes(issue.equipmentId));
+            tempIssues = tempIssues.filter(issue => unitEquipmentIds.includes(issue.equipment.id));
         }
 
         setFilteredIssues(tempIssues);
@@ -211,7 +211,7 @@ const IssuesListPage: React.FC = () => {
                             <tbody className="bg-white divide-y divide-gray-200">
                             {filteredIssues.length > 0 ? filteredIssues.map(issue => (
                                 <tr key={issue.id}>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{issue.equipmentName || issue.equipmentId}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{issue.equipment?.name || issue.equipment?.id}</td>
                                     <td className="px-6 py-4 whitespace-normal text-sm text-gray-500 max-w-xs truncate">{issue.description}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{issue.reportedBy}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{format(new Date(issue.dateTime), 'PPpp', { locale: es })}</td>
