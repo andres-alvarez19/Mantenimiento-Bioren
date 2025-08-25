@@ -29,7 +29,7 @@ const IssueReportForm: React.FC<IssueReportFormProps> = ({ initialData, equipmen
     // Función para transformar EquipmentResponse a Equipment
     function transformEquipmentResponse(data: EquipmentResponse): Equipment {
         return {
-            id: data.institutionalId || String(data.id),
+            id: String(data.id),
             institutionalId: data.institutionalId,
             name: data.name,
             brand: data.brand,
@@ -156,6 +156,16 @@ const IssueReportForm: React.FC<IssueReportFormProps> = ({ initialData, equipmen
         return Object.keys(newErrors).length === 0;
     };
 
+    // Mapeo de criticality para backend
+    const mapCriticalityToBackend = (criticality: string): string => {
+        switch (criticality) {
+            case 'Alta': return 'HIGH';
+            case 'Media': return 'MEDIUM';
+            case 'Baja': return 'LOW';
+            default: return 'MEDIUM';
+        }
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (validate()) {
@@ -164,8 +174,13 @@ const IssueReportForm: React.FC<IssueReportFormProps> = ({ initialData, equipmen
                 toast.showToast('Equipo no encontrado.');
                 return;
             }
+            // Clonar y transformar criticality
+            const equipmentForBackend = {
+                ...selectedEquipment,
+                criticality: mapCriticalityToBackend(selectedEquipment.criticality as string)
+            };
             const finalData: Omit<IssueReport, 'id'> = {
-                equipment: selectedEquipment,
+                equipment: equipmentForBackend,
                 reportedBy: currentUser?.id || '',
                 dateTime: new Date().toISOString(),
                 description: formData.description || '',
