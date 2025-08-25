@@ -73,7 +73,7 @@ export enum IssueSeverity {
 }
 
 export interface IssueReport {
-  id: string;
+  id?: string;
   equipment: Equipment;
   reportedBy: string; // User name or ID
   dateTime: string; // ISO string

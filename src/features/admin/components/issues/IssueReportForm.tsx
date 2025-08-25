@@ -11,10 +11,12 @@ import { useAuth } from '@/hooks/useAuth';
 import { getEquipments, EquipmentResponse } from '@/lib/api/services/equipmentService';
 import { useToast } from '@/hooks/useToast';
 
+type IssueReportInput = Omit<IssueReport, 'id'> & { id?: string };
+
 interface IssueReportFormProps {
     initialData?: IssueReport | null;
     equipmentIdFromUrl?: string;
-    onSubmit: (issueReport: IssueReport) => void;
+    onSubmit: (issueReport: IssueReportInput) => void;
     onCancel: () => void;
 }
 
@@ -162,8 +164,7 @@ const IssueReportForm: React.FC<IssueReportFormProps> = ({ initialData, equipmen
                 toast.showToast('Equipo no encontrado.');
                 return;
             }
-            const finalData: IssueReport = {
-                id: formData.id || '',
+            const finalData: Omit<IssueReport, 'id'> = {
                 equipment: selectedEquipment,
                 reportedBy: currentUser?.id || '',
                 dateTime: new Date().toISOString(),
@@ -172,7 +173,11 @@ const IssueReportForm: React.FC<IssueReportFormProps> = ({ initialData, equipmen
                 status: formData.status,
                 attachments: formData.attachments,
             };
-            onSubmit(finalData);
+            if (formData.id) {
+                onSubmit({ ...finalData, id: formData.id });
+            } else {
+                onSubmit(finalData);
+            }
         }
     };
 
