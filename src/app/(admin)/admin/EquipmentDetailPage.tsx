@@ -15,8 +15,13 @@ import { useAuth } from '@/hooks/useAuth';
 import Modal from '@/components/ui/Modal';
 import TextInput from '@/components/ui/TextInput';
 import DateInput from '@/components/ui/DateInput';
-import { getEquipmentById, deleteEquipment, createMaintenanceRecord } from '@/lib/api/services/equipmentService';
-import { getMaintenanceRecords } from '@/lib/api/services/maintenanceService';
+import { getEquipmentById, deleteEquipment } from '@/lib/api/services/equipmentService';
+import {
+  getMaintenanceRecords,
+  createMaintenanceRecord,
+  updateMaintenanceRecord,
+  deleteMaintenanceRecord,
+} from '@/lib/api/services/maintenanceService';
 
 const DetailItem: React.FC<{ label: string; value?: string | number | React.ReactNode; className?: string }> = ({ label, value, className }) => (
     <div className={`py-3 sm:grid sm:grid-cols-3 sm:gap-4 ${className}`}>
@@ -35,7 +40,7 @@ const EquipmentDetailPage: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-
+    const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
     const [maintForm, setMaintForm] = useState({ description: '', performedBy: '', date: '' });
 
     const loadMaintenanceHistory = async () => {
@@ -75,6 +80,22 @@ const EquipmentDetailPage: React.FC = () => {
         setMaintForm({ ...maintForm, [e.target.name]: e.target.value });
     };
 
+    const openEditModal = (record: MaintenanceRecord) => {
+        setMaintForm({
+            description: record.description || '',
+            performedBy: record.performedBy || '',
+            date: record.date ? record.date.slice(0, 10) : '',
+        });
+        setEditingRecordId(record.id.toString());
+        setIsModalOpen(true);
+    };
+
+    const closeMaintModal = () => {
+        setIsModalOpen(false);
+        setEditingRecordId(null);
+        setMaintForm({ description: '', performedBy: '', date: '' });
+    };
+
     const handleMaintSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!equipmentId) return;
@@ -85,13 +106,35 @@ const EquipmentDetailPage: React.FC = () => {
         };
 
         try {
-            await createMaintenanceRecord(equipmentId, payload);
-            alert('Registro de mantenimiento guardado exitosamente.');
-            setIsModalOpen(false);
-            setMaintForm({ description: '', performedBy: '', date: '' });
+            if (editingRecordId) {
+                await updateMaintenanceRecord(editingRecordId, {
+                    ...payload,
+                    equipment: { id: equipmentId },
+                });
+                alert('Registro de mantenimiento actualizado exitosamente.');
+            } else {
+                await createMaintenanceRecord({
+                    ...payload,
+                    equipment: { id: equipmentId },
+                });
+                alert('Registro de mantenimiento guardado exitosamente.');
+            }
+            closeMaintModal();
             await loadMaintenanceHistory();
         } catch (error) {
             alert(`Error: ${error instanceof Error ? error.message : "Ocurrió un error"}`);
+        }
+    };
+
+    const handleDeleteRecord = async (id: string) => {
+        const confirmed = window.confirm('¿Eliminar registro de mantenimiento?');
+        if (!confirmed) return;
+        try {
+            await deleteMaintenanceRecord(id);
+            alert('Registro de mantenimiento eliminado');
+            await loadMaintenanceHistory();
+        } catch (err) {
+            alert('No se pudo eliminar el registro de mantenimiento');
         }
     };
 
@@ -121,6 +164,7 @@ const EquipmentDetailPage: React.FC = () => {
 
     const canEdit = currentUser?.role === UserRole.BIOREN_ADMIN || currentUser?.role === UserRole.UNIT_MANAGER;
     const canDelete = currentUser?.role === UserRole.BIOREN_ADMIN;
+    const canManageMaintenance = canEdit;
 
 
     return (
@@ -160,15 +204,29 @@ const EquipmentDetailPage: React.FC = () => {
             <div className="bg-white shadow-xl rounded-lg p-6">
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-xl font-semibold text-gray-700">Historial de Mantenimiento</h2>
-                    <Button onClick={() => setIsModalOpen(true)} leftIcon={<PlusCircleIcon className="w-5 h-5"/>}>Añadir Registro</Button>
+                    {canManageMaintenance && (
+                        <Button onClick={() => setIsModalOpen(true)} leftIcon={<PlusCircleIcon className="w-5 h-5"/>}>Añadir Registro</Button>
+                    )}
                 </div>
                 {maintenanceHistory.length > 0 ? (
                     <ul className="border border-gray-200 rounded-md divide-y divide-gray-200 max-h-96 overflow-y-auto">
                         {maintenanceHistory.map((record) => (
                             <li key={record.id} className="p-4 hover:bg-gray-50">
                                 <div className="flex justify-between items-center mb-1">
-                                    <p className="text-md font-semibold text-bioren-blue">Fecha: {safeFormatDate(record.date)}</p>
-                                    <p className="text-sm text-gray-500">Por: {record.performedBy}</p>
+                                    <div>
+                                        <p className="text-md font-semibold text-bioren-blue">Fecha: {safeFormatDate(record.date)}</p>
+                                        <p className="text-sm text-gray-500">Por: {record.performedBy}</p>
+                                    </div>
+                                    {canManageMaintenance && (
+                                        <div className="flex space-x-2">
+                                            <Button variant="ghost" size="sm" onClick={() => openEditModal(record)} title="Editar">
+                                                <PencilSquareIcon className="w-4 h-4 text-yellow-600" />
+                                            </Button>
+                                            <Button variant="ghost" size="sm" onClick={() => handleDeleteRecord(record.id.toString())} title="Eliminar">
+                                                <TrashIcon className="w-4 h-4 text-red-600" />
+                                            </Button>
+                                        </div>
+                                    )}
                                 </div>
                                 <p className="text-sm text-gray-700 mb-2">{record.description}</p>
 
@@ -199,14 +257,14 @@ const EquipmentDetailPage: React.FC = () => {
                 )}
             </div>
 
-            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Añadir Nuevo Registro de Mantenimiento">
+            <Modal isOpen={isModalOpen} onClose={closeMaintModal} title={editingRecordId ? "Editar Registro de Mantenimiento" : "Añadir Nuevo Registro de Mantenimiento"}>
                 <form onSubmit={handleMaintSubmit} className="space-y-4">
                     <DateInput label="Fecha del Mantenimiento" name="date" value={maintForm.date} onChange={handleFormChange} required />
                     <TextInput label="Realizado Por" name="performedBy" value={maintForm.performedBy} onChange={handleFormChange} required />
                     <TextInput label="Descripción del Trabajo" name="description" value={maintForm.description} onChange={handleFormChange} required />
                     <div className="flex justify-end pt-4 space-x-2">
-                        <Button type="button" variant="secondary" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
-                        <Button type="submit">Guardar Registro</Button>
+                        <Button type="button" variant="secondary" onClick={closeMaintModal}>Cancelar</Button>
+                        <Button type="submit">{editingRecordId ? 'Actualizar' : 'Guardar'} Registro</Button>
                     </div>
                 </form>
             </Modal>
