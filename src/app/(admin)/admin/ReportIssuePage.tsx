@@ -15,20 +15,16 @@ const ReportIssuePage: React.FC = () => {
   const queryParams = new URLSearchParams(location.search);
   const equipmentIdFromUrl = queryParams.get('equipmentId') || undefined;
 
-  const handleSubmitIssue = async (issueReportData: Omit<IssueReport, 'id' | 'dateTime' | 'reportedBy'>) => {
+  const handleSubmitIssue = async (issueReportData: Omit<IssueReport, 'id'> & { id?: string }) => {
     if (!currentUser) {
       alert("Error: Debes estar logueado para reportar una incidencia.");
       return;
     }
 
-    // Completamos los datos de la incidencia con la información del usuario logueado
-    const fullIssueReport = {
-      ...issueReportData,
-      reportedBy: currentUser.name,
-    };
+    const { id: _id, ...dataWithoutId } = issueReportData;
 
     try {
-      await createIssueReport(fullIssueReport);
+      await createIssueReport(dataWithoutId);
       alert('¡Incidencia reportada exitosamente!');
       navigate('/issues'); // Redirigimos a la lista de incidencias
 
