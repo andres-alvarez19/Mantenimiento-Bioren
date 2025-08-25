@@ -33,7 +33,7 @@ export const EQUIPMENT_CRITICALITY_OPTIONS = [
 ];
 
 export const ISSUE_SEVERITY_OPTIONS = [
-  { value: 'MINOR', label: 'Menor' },
-  { value: 'MODERATE', label: 'Moderada' },
-  { value: 'CRITICAL', label: 'Crítica' }
+  { value: IssueSeverity.MINOR, label: 'Menor' },
+  { value: IssueSeverity.MODERATE, label: 'Moderada' },
+  { value: IssueSeverity.CRITICAL, label: 'Crítica' }
 ];

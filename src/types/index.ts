@@ -67,9 +67,9 @@ export interface Equipment {
 }
 
 export enum IssueSeverity {
-  MINOR = 'Menor',
-  MODERATE = 'Moderada',
-  CRITICAL = 'Crítica',
+  MINOR = 'MINOR',
+  MODERATE = 'MODERATE',
+  CRITICAL = 'CRITICAL',
 }
 
 export interface IssueReport {
