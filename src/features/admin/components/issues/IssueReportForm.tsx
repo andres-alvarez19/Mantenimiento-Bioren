@@ -1,27 +1,69 @@
 // components/issues/IssueReportForm.tsx
 
-import React, { useState, useEffect } from 'react';
-import { IssueReport, IssueSeverity, Equipment, UserRole } from '@/types';
+import React, { useState, useEffect, useMemo } from 'react';
+import { IssueReport, IssueSeverity, Equipment, UserRole, EquipmentCriticality, MaintenanceFrequencyUnit } from '@/types';
 import Button from '@/components/ui/Button';
 import SelectInput from '@/components/ui/SelectInput';
 import TextareaInput from '@/components/ui/TextareaInput';
 import FileInput from '@/components/ui/FileInput';
 import { ISSUE_SEVERITY_OPTIONS } from '@/lib/config/constants';
 import { useAuth } from '@/hooks/useAuth';
-import { getEquipments } from '@/lib/api/services/equipmentService';
+import { getEquipments, EquipmentResponse } from '@/lib/api/services/equipmentService';
+import { useToast } from '@/hooks/useToast';
 
 interface IssueReportFormProps {
     initialData?: IssueReport | null;
     equipmentIdFromUrl?: string;
-    onSubmit: (issueReport: any) => void;
+    onSubmit: (issueReport: IssueReport) => void;
     onCancel: () => void;
 }
 
 const IssueReportForm: React.FC<IssueReportFormProps> = ({ initialData, equipmentIdFromUrl, onSubmit, onCancel }) => {
     const { currentUser } = useAuth();
+    const toast = useToast();
 
     // Estado para guardar la lista de equipos cargada desde la API
     const [availableEquipment, setAvailableEquipment] = useState<Equipment[]>([]);
+    // Función para transformar EquipmentResponse a Equipment
+    function transformEquipmentResponse(data: EquipmentResponse): Equipment {
+        return {
+            id: data.institutionalId || String(data.id),
+            institutionalId: data.institutionalId,
+            name: data.name,
+            brand: data.brand,
+            model: data.model,
+            locationBuilding: data.locationBuilding,
+            locationUnit: data.locationUnit,
+            lastCalibrationDate: data.lastCalibrationDate,
+            lastMaintenanceDate: data.lastMaintenanceDate,
+            encargado: data.encargado
+                ? {
+                    id: String(data.encargado.id),
+                    name: data.encargado.name,
+                    email: data.encargado.email,
+                    role: data.encargado.role as UserRole,
+                    unit: data.encargado.unit,
+                }
+                : undefined,
+            maintenanceFrequency: data.maintenanceFrequency
+                ? {
+                    value: data.maintenanceFrequency.value,
+                    unit: data.maintenanceFrequency.unit as MaintenanceFrequencyUnit,
+                }
+                : { value: 6, unit: MaintenanceFrequencyUnit.MONTHS },
+            maintenanceRecords: data.maintenanceRecords || [],
+            customMaintenanceInstructions: data.customMaintenanceInstructions,
+            criticality: (Object.values(EquipmentCriticality) as string[]).includes(data.criticality || '')
+                ? (data.criticality as EquipmentCriticality)
+                : EquipmentCriticality.MEDIUM,
+            status:
+                data.status === 'OK' || data.status === 'Advertencia' || data.status === 'Vencido'
+                    ? data.status
+                    : undefined,
+            nextMaintenanceDate: data.nextMaintenanceDate,
+            purchasedByGovernment: data.purchasedByGovernment,
+        };
+    }
     const [isLoading, setIsLoading] = useState(true);
 
     interface FormState {
@@ -54,23 +96,23 @@ const IssueReportForm: React.FC<IssueReportFormProps> = ({ initialData, equipmen
     useEffect(() => {
         const fetchEquipmentList = async () => {
             try {
-                // Usar el servicio en vez de fetch directo
-                const data: Equipment[] = await getEquipments();
+                const data: EquipmentResponse[] = await getEquipments();
+                const transformed = data.map(transformEquipmentResponse);
                 // Si el usuario es un Jefe de Unidad, filtramos los equipos por su unidad
                 if (currentUser?.role === UserRole.UNIT_MANAGER && currentUser.unit) {
-                    setAvailableEquipment(data.filter(eq => eq.locationUnit === currentUser.unit));
+                    setAvailableEquipment(transformed.filter(eq => eq.locationUnit === currentUser.unit));
                 } else {
-                    setAvailableEquipment(data);
+                    setAvailableEquipment(transformed);
                 }
             } catch (error) {
                 console.error(error);
-                alert("Error: No se pudo cargar la lista de equipos desde el servidor.");
+                toast.showToast("No se pudo cargar la lista de equipos desde el servidor.");
             } finally {
                 setIsLoading(false);
             }
         };
         fetchEquipmentList();
-    }, [currentUser]);
+    }, []); // Solo se ejecuta una vez al montar
 
 
     useEffect(() => {
@@ -79,7 +121,10 @@ const IssueReportForm: React.FC<IssueReportFormProps> = ({ initialData, equipmen
         }
     }, [equipmentIdFromUrl, initialData]);
 
-    const equipmentOptions = availableEquipment.map(eq => ({ value: eq.id, label: `${eq.name} (${eq.id})` }));
+    const equipmentOptions = useMemo(() =>
+        availableEquipment.map(eq => ({ value: eq.id, label: `${eq.name} (${eq.id})` })),
+        [availableEquipment]
+    );
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -99,6 +144,7 @@ const IssueReportForm: React.FC<IssueReportFormProps> = ({ initialData, equipmen
         }
     };
 
+    // Validación extraída
     const validate = (): boolean => {
         const newErrors: Record<string, string> = {};
         if (!formData.equipmentId) newErrors.equipmentId = 'La selección del equipo es requerida.';
@@ -113,13 +159,15 @@ const IssueReportForm: React.FC<IssueReportFormProps> = ({ initialData, equipmen
         if (validate()) {
             const selectedEquipment = availableEquipment.find(eq => eq.id === formData.equipmentId);
             if (!selectedEquipment) {
-                alert('Error: Equipo no encontrado.');
+                toast.showToast('Equipo no encontrado.');
                 return;
             }
-            const finalData = {
-                id: formData.id,
+            const finalData: IssueReport = {
+                id: formData.id || '',
                 equipment: selectedEquipment,
-                description: formData.description,
+                reportedBy: currentUser?.id || '',
+                dateTime: new Date().toISOString(),
+                description: formData.description || '',
                 severity: formData.severity,
                 status: formData.status,
                 attachments: formData.attachments,
