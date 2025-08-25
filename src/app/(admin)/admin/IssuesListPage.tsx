@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { IssueReport, UserRole, IssueSeverity } from '@/types';
+import { ISSUE_SEVERITY_OPTIONS } from '@/lib/config/constants';
 import Button from '@/components/ui/Button';
 import { PlusCircleIcon, PencilSquareIcon, TrashIcon } from '@heroicons/react/24/solid';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -189,7 +190,9 @@ const IssuesListPage: React.FC = () => {
                             <select id="filterSeverity" value={filterSeverity} onChange={e => setFilterSeverity(e.target.value)}
                                     className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-bioren-blue-light focus:border-bioren-blue-light sm:text-sm rounded-md">
                                 <option value="">Todas las Severidades</option>
-                                {Object.values(IssueSeverity).map(sev => <option key={sev} value={sev}>{sev}</option>)}
+                                {ISSUE_SEVERITY_OPTIONS.map(opt => (
+                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                ))}
                             </select>
                         </div>
                         <Button variant="secondary" onClick={() => { setFilterStatus(''); setFilterSeverity('');}}>Limpiar Filtros</Button>
@@ -216,7 +219,8 @@ const IssuesListPage: React.FC = () => {
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{issue.reportedBy}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{format(new Date(issue.dateTime), 'PPpp', { locale: es })}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                        <Badge text={issue.severity} color={getSeverityColor(issue.severity)} />
+                                        <Badge text={ISSUE_SEVERITY_OPTIONS.find(opt => opt.value === issue.severity)?.label || issue.severity}
+                                               color={getSeverityColor(issue.severity)} />
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                                         <Badge text={issue.status} color={issue.status === 'Abierto' ? 'red' : issue.status === 'En Progreso' ? 'yellow' : 'green'} />
