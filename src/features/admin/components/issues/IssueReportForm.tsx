@@ -24,15 +24,31 @@ const IssueReportForm: React.FC<IssueReportFormProps> = ({ initialData, equipmen
     const [availableEquipment, setAvailableEquipment] = useState<Equipment[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    const [formData, setFormData] = useState<Partial<IssueReport>>(
-        initialData || {
+    interface FormState {
+        id?: string;
+        equipmentId: string;
+        description?: string;
+        severity: IssueSeverity;
+        status: 'Abierto' | 'En Progreso' | 'Resuelto';
+        attachments: { name: string; url: string }[];
+    }
+
+    const [formData, setFormData] = useState<FormState>(
+        initialData ? {
+            id: initialData.id,
+            equipmentId: initialData.equipment.id,
+            description: initialData.description,
+            severity: initialData.severity,
+            status: initialData.status,
+            attachments: initialData.attachments || [],
+        } : {
             equipmentId: equipmentIdFromUrl || '',
             severity: IssueSeverity.MINOR,
             status: 'Abierto',
             attachments: [],
         }
     );
-    const [errors, setErrors] = useState<Partial<Record<keyof IssueReport, string>>>({});
+    const [errors, setErrors] = useState<Record<string, string>>({});
 
     // useEffect para buscar la lista de equipos desde la API
     useEffect(() => {
@@ -68,8 +84,12 @@ const IssueReportForm: React.FC<IssueReportFormProps> = ({ initialData, equipmen
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
-        if (errors[name as keyof IssueReport]) {
-            setErrors(prev => ({...prev, [name]: undefined}));
+        if (errors[name]) {
+            setErrors(prev => {
+                const newErrors = { ...prev };
+                delete newErrors[name];
+                return newErrors;
+            });
         }
     };
 
@@ -80,7 +100,7 @@ const IssueReportForm: React.FC<IssueReportFormProps> = ({ initialData, equipmen
     };
 
     const validate = (): boolean => {
-        const newErrors: Partial<Record<keyof IssueReport, string>> = {};
+        const newErrors: Record<string, string> = {};
         if (!formData.equipmentId) newErrors.equipmentId = 'La selección del equipo es requerida.';
         if (!formData.description?.trim()) newErrors.description = 'La descripción de la incidencia es requerida.';
         if (!formData.severity) newErrors.severity = 'El nivel de severidad es requerido.';
@@ -91,12 +111,18 @@ const IssueReportForm: React.FC<IssueReportFormProps> = ({ initialData, equipmen
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (validate()) {
-            // Buscamos el nombre del equipo seleccionado para añadirlo al reporte
-            const selectedEquipmentName = availableEquipment.find(eq => eq.id === formData.equipmentId)?.name || 'Equipo Desconocido';
-
+            const selectedEquipment = availableEquipment.find(eq => eq.id === formData.equipmentId);
+            if (!selectedEquipment) {
+                alert('Error: Equipo no encontrado.');
+                return;
+            }
             const finalData = {
-                ...formData,
-                equipmentName: selectedEquipmentName,
+                id: formData.id,
+                equipment: selectedEquipment,
+                description: formData.description,
+                severity: formData.severity,
+                status: formData.status,
+                attachments: formData.attachments,
             };
             onSubmit(finalData);
         }
