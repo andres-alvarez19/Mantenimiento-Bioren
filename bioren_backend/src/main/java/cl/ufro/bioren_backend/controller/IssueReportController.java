@@ -24,18 +24,20 @@ public class IssueReportController {
      * Obtiene todas las incidencias visibles para el usuario autenticado.
      */
     @GetMapping
-    public List<IssueReport> getAll(@AuthenticationPrincipal UserPrincipal principal) {
+    public List<cl.ufro.bioren_backend.dto.IssueReportResponseDTO> getAll(@AuthenticationPrincipal UserPrincipal principal) {
         User user = principalToUser(principal);
-        return issueReportService.getAll(user);
+        return issueReportService.getAll(user).stream()
+                .map(issueReportService::toDTO)
+                .toList();
     }
 
     /**
      * Obtiene una incidencia por su ID.
      */
     @GetMapping("/{id}")
-    public IssueReport getById(@PathVariable Long id, @AuthenticationPrincipal UserPrincipal principal) {
+    public cl.ufro.bioren_backend.dto.IssueReportResponseDTO getById(@PathVariable Long id, @AuthenticationPrincipal UserPrincipal principal) {
         User user = principalToUser(principal);
-        return issueReportService.getById(id, user);
+        return issueReportService.toDTO(issueReportService.getById(id, user));
     }
 
     /**
@@ -43,9 +45,9 @@ public class IssueReportController {
      */
     @PostMapping
     @PreAuthorize("hasRole('BIOREN_ADMIN') or hasRole('UNIT_MANAGER') or hasRole('EQUIPMENT_MANAGER')")
-    public IssueReport create(@RequestBody IssueReport ir, @AuthenticationPrincipal UserPrincipal principal) {
+    public cl.ufro.bioren_backend.dto.IssueReportResponseDTO create(@RequestBody IssueReport ir, @AuthenticationPrincipal UserPrincipal principal) {
         User user = principalToUser(principal);
-        return issueReportService.create(ir, user);
+        return issueReportService.toDTO(issueReportService.create(ir, user));
     }
 
     /**
@@ -53,9 +55,9 @@ public class IssueReportController {
      */
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('BIOREN_ADMIN') or hasRole('UNIT_MANAGER')")
-    public IssueReport update(@PathVariable Long id, @RequestBody IssueReport ir, @AuthenticationPrincipal UserPrincipal principal) {
+    public cl.ufro.bioren_backend.dto.IssueReportResponseDTO update(@PathVariable Long id, @RequestBody IssueReport ir, @AuthenticationPrincipal UserPrincipal principal) {
         User user = principalToUser(principal);
-        return issueReportService.update(id, ir, user);
+        return issueReportService.toDTO(issueReportService.update(id, ir, user));
     }
 
     /**

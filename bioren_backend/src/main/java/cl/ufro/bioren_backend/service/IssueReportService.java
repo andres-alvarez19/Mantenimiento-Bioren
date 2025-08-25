@@ -18,6 +18,40 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class IssueReportService {
+    /**
+     * Convierte IssueReport a IssueReportResponseDTO
+     */
+    public cl.ufro.bioren_backend.dto.IssueReportResponseDTO toDTO(IssueReport ir) {
+        if (ir == null) return null;
+        cl.ufro.bioren_backend.dto.IssueReportResponseDTO dto = new cl.ufro.bioren_backend.dto.IssueReportResponseDTO();
+        dto.setId(ir.getId());
+        dto.setReportedBy(ir.getReportedBy());
+        dto.setDateTime(ir.getDateTime());
+        dto.setDescription(ir.getDescription());
+        dto.setSeverity(ir.getSeverity() != null ? ir.getSeverity().name() : null);
+        dto.setStatus(ir.getStatus());
+        // Map attachments
+        if (ir.getAttachments() != null) {
+            List<cl.ufro.bioren_backend.dto.IssueReportResponseDTO.AttachmentDTO> attDTOs = ir.getAttachments().stream()
+                .map(att -> {
+                    cl.ufro.bioren_backend.dto.IssueReportResponseDTO.AttachmentDTO a = new cl.ufro.bioren_backend.dto.IssueReportResponseDTO.AttachmentDTO();
+                    a.setName(att.getName());
+                    a.setUrl(att.getUrl());
+                    return a;
+                }).toList();
+            dto.setAttachments(attDTOs);
+        }
+        // Map equipment (solo datos básicos)
+        if (ir.getEquipment() != null) {
+            cl.ufro.bioren_backend.dto.IssueReportResponseDTO.EquipmentDTO eqDTO = new cl.ufro.bioren_backend.dto.IssueReportResponseDTO.EquipmentDTO();
+            eqDTO.setId(ir.getEquipment().getId());
+            eqDTO.setName(ir.getEquipment().getName());
+            eqDTO.setBrand(ir.getEquipment().getBrand());
+            eqDTO.setModel(ir.getEquipment().getModel());
+            dto.setEquipment(eqDTO);
+        }
+        return dto;
+    }
     private final IssueReportRepository issueReportRepository;
     private final EquipmentRepository equipmentRepository;
 
